@@ -29,11 +29,11 @@ button, input, textarea { font: inherit; color: inherit; }
 .muted { color: var(--color-muted); }
 .small { font-size: 13px; line-height: 18px; }
 
-.wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 var(--space-lg); }
+.wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 max(var(--space-lg), env(safe-area-inset-right)) 0 max(var(--space-lg), env(safe-area-inset-left)); }
 main.wrap { flex: 1; padding-top: var(--space-xl); padding-bottom: 96px; }
 
 /* ---------- top bar & tabs ---------- */
-.topbar { background: var(--color-surface); border-bottom: 1px solid var(--color-line); position: sticky; top: 0; z-index: 5; }
+.topbar { background: var(--color-surface); border-bottom: 1px solid var(--color-line); position: sticky; top: 0; z-index: 5; padding-top: env(safe-area-inset-top); }
 .topbar-inner { display: flex; align-items: center; gap: var(--space-lg); min-height: 56px; }
 .brand { display: inline-flex; align-items: center; gap: var(--space-sm); font-weight: 700; font-size: 17px; color: var(--color-ink); text-decoration: none; white-space: nowrap; }
 .brand-mark { width: 14px; height: 20px; border-radius: 3px; border: 2px solid var(--color-accent); position: relative; }
@@ -61,6 +61,16 @@ svg .fill { fill: currentColor; stroke: none; }
   .tabs a { flex: 1; flex-direction: column; gap: 2px; font-size: 11px; line-height: 14px; padding: var(--space-sm) 0; border-radius: var(--radius-md); }
   .tabs a svg { width: 22px; height: 22px; }
   .display { font-size: 24px; line-height: 30px; }
+  /* 44pt touch targets (Apple HIG) on phones. */
+  .tabs a { min-height: 50px; justify-content: center; }
+  .button, .chip, .chip.small, .chip-radio span, .field input { min-height: 44px; }
+  .theme button { min-width: 40px; min-height: 40px; justify-content: center; align-items: center; }
+  .about-link { display: inline-flex; align-items: center; min-height: 44px; }
+  .link-button { min-height: 44px; }
+  .checklist label { min-height: 44px; }
+  .swatch { width: 44px; height: 44px; }
+  .searchbar input { font-size: 17px; } /* ≥16px keeps iOS Safari from zooming in */
+  .field input, .field textarea { font-size: 16px; }
 }
 
 /* ---------- buttons, chips, fields ---------- */

@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log/slog"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
@@ -25,6 +26,11 @@ var templateFS embed.FS
 
 //go:embed static
 var staticFS embed.FS
+
+func init() {
+	// Go does not know this type; with nosniff, text/plain would make browsers ignore it.
+	_ = mime.AddExtensionType(".webmanifest", "application/manifest+json")
+}
 
 // LocalUser is the only user until sign-in exists. Every store call already takes a
 // user id, so adding accounts means replacing this constant with the session's user.

@@ -1,6 +1,6 @@
 # Film Arşivi — web (Go + sunucuda üretilen HTML)
 
-Kişisel film, dizi ve anime arşivinin web sitesi. Herkes kendi puanını verir (ortak puan yok), kendi kategorilerini oluşturur. Film ve diziler TMDB'den, animeler AniList'ten gelir.
+Kişisel film, dizi ve anime arşivinin tek uygulaması: hem web sitesi hem de iPhone'da "Ana Ekrana Ekle" ile açılan mobil uygulama (PWA). Ayrı bir Expo uygulaması yok. Herkes kendi puanını verir (ortak puan yok), kendi kategorilerini oluşturur. Film ve diziler TMDB'den, animeler AniList'ten gelir.
 
 Monorepo içinde kendi başına bir Go modülüdür (`filmarsivi/web`); pnpm/Turborepo ona dokunmaz.
 
@@ -10,7 +10,7 @@ Monorepo içinde kendi başına bir Go modülüdür (`filmarsivi/web`); pnpm/Tur
 brew install go          # Go 1.25 veya üstü
 cd apps/web
 cp .env.example .env     # isteğe bağlı: TMDB_API_KEY ekle
-go run ./cmd/web         # http://127.0.0.1:8080
+go run ./cmd/web         # açılışta Mac'teki ve iPhone'daki adresleri yazdırır
 ```
 
 Testler ve denetim:
@@ -31,11 +31,28 @@ go generate ./...
 | Değişken | Varsayılan | Açıklama |
 | --- | --- | --- |
 | `TMDB_API_KEY` | boş | TMDB v3 anahtarı ya da `eyJ` ile başlayan v4 okuma token'ı. Yoksa site sadece AniList ile anime arar ve arayüz bunu sakin bir notla söyler. |
-| `ADDR` | `127.0.0.1:8080` | Dinlenecek adres. Sadece `PORT` vermek de olur. |
+| `ADDR` | `0.0.0.0:8080` | Dinlenecek adres. Varsayılan, aynı Wi-Fi'deki telefonların erişmesine izin verir; sadece bu Mac için `127.0.0.1:8080` ver. |
+| `PORT` | `8080` | `ADDR` yoksa kullanılır. 8080 doluysa (ör. Xcode simülatör aracı) `PORT=8787 go run ./cmd/web`. |
 | `DB_PATH` | `data/film-arsivi.db` | SQLite dosyası. `data/` git'e girmez. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error`. |
 
 `.env` dosyası (varsa) açılışta okunur; ortamda zaten tanımlı olan değişkenleri ezmez. `.env` asla commit edilmez.
+
+## iPhone'da deneme
+
+1. Mac ve iPhone aynı Wi-Fi'de olsun.
+2. Mac'te `go run ./cmd/web` çalıştır. Terminal şöyle bir satır yazar:
+   `iPhone'dan:     http://192.168.x.x:8080   (aynı Wi-Fi)`
+3. iPhone'da Safari'yi aç, bu adrese git.
+4. Paylaş düğmesi → **Ana Ekrana Ekle**. Uygulama kendi simgesiyle, adres çubuğu olmadan tam ekran açılır.
+
+macOS ilk açılışta gelen bağlantılara izin isteyebilir; "İzin Ver" de.
+
+Bilmen gerekenler:
+
+- **Mac kapalıyken ya da uykudayken çalışmaz.** Uygulama Mac'teki sunucuya bağlanır; veri de Mac'teki SQLite dosyasındadır. Kalıcı kullanım için sunucunun bir barındırma hizmetine (Fly.io, Render gibi, kalıcı diskle) yayınlanması gerekir. Bu sonraki adım.
+- **Giriş yok.** Aynı Wi-Fi'deki herkes adresi bilirse arşivi görüp değiştirebilir. Ev ağında prototip için yeterli; ortak ağlarda `ADDR=127.0.0.1:8080` ile çalıştır. Yayınlamadan önce giriş eklenmeli.
+- Service worker yok: çevrimdışı çalışmaz. İkonlar ve manifest var, ana ekranda uygulama gibi açılır.
 
 ## Sayfalar
 
@@ -54,6 +71,7 @@ go generate ./...
 ```
 cmd/web            main: yapılandırma, SQLite, kaynak istemcileri, HTTP sunucusu
 cmd/synctokens     packages/tokens/dist/tokens.css → internal/web/static/tokens.css
+cmd/genicons       uygulama ikonlarını (apple-touch-icon, 192, 512 PNG) üretir
 internal/domain    modeller, kurallar, puan ve kategori servisleri, arama birleştirme, Store arayüzü
 internal/sources   TMDB ve AniList istemcileri
 internal/store     Store uygulamaları: Memory (referans) ve SQLite (modernc.org/sqlite, CGO yok)
@@ -65,7 +83,7 @@ Sadece standart kütüphane (`net/http`, `html/template`, `log/slog`) ve iki ba�
 
 ### TypeScript çekirdeğiyle eşitlik
 
-`internal/domain` ve `internal/sources`, `packages/core`'un Go karşılığıdır. Davranışı aynı tutmak için:
+Expo uygulaması bırakıldığı için `packages/core` (TS) artık bir referans spesifikasyondur; davranışın asıl kaynağı Go tarafıdır (`internal/domain`, `internal/sources`). Yine de ikisi aynı kalsın diye:
 
 - `internal/domain/domain_test.go`, `packages/core/src/core.test.ts` senaryolarını aynı adlar ve aynı verilerle birebir taşır. Store'a dokunan her senaryo hem Memory hem SQLite üzerinde çalışır.
 - `internal/sources/sources_test.go`, AniList eşlemesini aynı Frieren örneğiyle doğrular; TMDB için v3/v4 anahtar ayrımını, Japon animasyonunun anime sayılmasını ve detay alanlarını sınar.
@@ -85,26 +103,28 @@ Sadece standart kütüphane (`net/http`, `html/template`, `log/slog`) ve iki ba�
 - **htmx kullanılmadı.** İlk dilimde tam sayfa yenileme yeterince hızlı; bağımlılık eklemeye değmedi.
 - **Silme onayı ayrı sayfa.** Mobildeki "tekrar dokun" JS gerektirir; web'de `/kategoriler/{id}/sil` onay sayfası var.
 - **Tema.** `tokens.css` sistem temasını izler. Üst çubuktaki Sistem/Açık/Koyu düğmeleri `tema` çerezini yazar ve `<html data-theme>` ile tokens'ın kendi seçicilerini kullanır (JS gerekmez).
-- **Tasarım dili.** Renk, boşluk ve köşe yarıçapları yalnızca `tokens.css` değişkenlerinden gelir; yazı ölçeği `packages/tokens` içindeki `type` ile aynıdır. Afişler her yerde 2:3. Telefonda sekmeler mobil uygulamadaki gibi alt çubuğa iner.
+- **Mobil öncelikli.** Ana kullanım 375pt genişlik. Telefonda sekmeler (Ara, Arşivim, Kategoriler) alta sabitlenir; çentik ve home indicator için `env(safe-area-inset-*)` boşlukları var (`viewport-fit=cover`). Dokunma hedefleri en az 44pt; form alanları 16px+ yazıyla iOS'un otomatik yakınlaştırmasını tetiklemez. Masaüstünde aynı sayfalar genişler, sekmeler üst çubuğa çıkar.
+- **PWA.** `static/manifest.webmanifest` (standalone, renkler `tokens.css`'ten: arka plan `--color-bg`, tema `--color-surface`), `apple-touch-icon.png` (180px), 192/512 ikonlar ve iOS meta etiketleri. Service worker eklenmedi (şart değildi; önbellek bayatlığı riskini prototipte almaya değmedi).
+- **Tasarım dili.** Renk, boşluk ve köşe yarıçapları yalnızca `tokens.css` değişkenlerinden gelir; yazı ölçeği `packages/tokens` içindeki `type` ile aynıdır. Afişler her yerde 2:3.
 - **Hakkında metni.** Ortak `about.body` "bu cihazda saklanır" diyor (mobil için doğru). Web'de veri sunucuda durduğu için `Web.AboutStorage` kullanılıyor.
 - **Web'e özel metinler** `i18n.TR.Web` altında; ortak anahtarlara dokunulmadı. Geçersiz renk için web'e özel `invalid_color` hata kodu eklendi (TS'de tip sistemi bunu zaten engelliyor).
 - **Kaynak çökerse.** Arama, bir kaynak yanıt vermezse diğerinin sonuçlarını gösterir ve not düşer; ikisi de yoksa "Tekrar dene" çıkar (502). Detay sayfası kaynak çökünce arşivdeki kayıtlı kopyayı "yüklenemedi" notuyla gösterir. Kaynaktan gelen başlıklar 15 dakika bellekte tutulur, böylece detay sayfası ve ardından gelen form aynı isteği tekrar atmaz. Arşivdeki bir başlık açıldığında kayıtlı kopya tazelenir.
-- **Güvenlik.** Giriş olmasa da başka kökenlerden gelen POST'lar reddedilir (`Origin`/`Sec-Fetch-Site`), sıkı CSP ve temel güvenlik başlıkları gönderilir, `geri` parametresi yalnızca site içi yollara yönlendirir. Sunucu varsayılan olarak sadece `127.0.0.1` üzerinde dinler.
+- **Güvenlik.** Giriş olmasa da başka kökenlerden gelen POST'lar reddedilir (`Origin`/`Sec-Fetch-Site`), sıkı CSP ve temel güvenlik başlıkları gönderilir, `geri` parametresi yalnızca site içi yollara yönlendirir. Sunucu telefondan erişilebilsin diye varsayılan olarak `0.0.0.0` üzerinde dinler (bkz. "iPhone'da deneme").
 - **TMDB atfı.** Hakkında sayfasında TMDB'nin istediği metin hem Türkçe hem orijinal İngilizce hâliyle yer alır. TMDB'nin resmi logosu dosya olarak eklenmedi; yerine metin rozeti var.
 
-## Uzun vade: mobil ile senkron (karar bekliyor, uygulanmadı)
+## Uzun vade: yayınlama ve veri (karar bekliyor, uygulanmadı)
 
-Mobil uygulama bugün kendi SQLite'ında çalışıyor. Web ile aynı veriyi görmek için iki yol var:
+Mobil artık bu uygulamanın kendisi olduğu için senkron sorunu kalmadı; asıl soru verinin nerede duracağı ve girişin nasıl yapılacağı. İki yol var:
 
-1. **Bu Go sunucusu backend olur.** Aynı servisler üzerine `/api/...` altında bir JSON API (ör. `GET /api/archive`, `PUT /api/ratings/{titleId}`, `POST /api/categories`) eklenir; modeller zaten JSON etiketli ve TS tipleriyle aynı alan adlarını kullanıyor. Mobil, `Repositories` arayüzünün bir HTTP uygulamasını yazar ve çevrimdışı değişiklikleri `updatedAt` ile sıraya alıp gönderir. Artısı: tek kod tabanında kurallar, veri kendi sunucunda, ek maliyet yok. Eksisi: kimlik doğrulama, yedekleme, barındırma ve senkron çakışma kuralları bize kalır.
-2. **Supabase.** Postgres + Auth + Row Level Security (`user_id = auth.uid()`), mobil ve web doğrudan Supabase'e bağlanır; `repository.ts` için bir Supabase uygulaması yazılır, bu Go sunucusu da `domain.Store`'un Postgres uygulamasıyla aynı veritabanını okur. Artısı: giriş, e-posta, yedek ve gerçek zamanlı abonelik hazır. Eksisi: üçüncü taraf bağımlılığı, kuralların bir kısmı (benzersiz ad gibi) veritabanı kısıtı olarak da yazılmalı.
+1. **Go sunucusu + SQLite, kendi barındırmamızda.** Fly.io ya da Render'a kalıcı diskle yayınlanır, basit bir giriş (ör. e-posta ile tek kullanımlık bağlantı ya da davet kodu) eklenir. İleride başka istemciler gerekirse aynı servisler `/api/...` altında JSON olarak da sunulabilir; modeller zaten JSON etiketli. Artısı: tek parça, ucuz, veri bizde. Eksisi: giriş ve yedekleme bize kalır.
+2. **Supabase.** Postgres + Auth + Row Level Security (`user_id = auth.uid()`). Bu Go sunucusu `domain.Store`'un Postgres uygulamasıyla Supabase veritabanını kullanır, girişi Supabase Auth yapar. Artısı: giriş, e-posta, yedek hazır. Eksisi: üçüncü taraf bağımlılığı, kuralların bir kısmı (benzersiz ad gibi) veritabanı kısıtı olarak da yazılmalı.
 
 Arkadaşlarla küçük bir kullanım için 1. seçenek daha az parçalı; giriş ve çok cihazlı senkron hızlıca gerekirse 2. seçenek daha az iş. Store arayüzü ikisine de hazır.
 
 ## Sonraya bırakılanlar
 
-- Giriş ve çok kullanıcı (Store hazır, oturum yok).
-- JSON API ve mobil senkron (yukarıdaki karar).
+- Bir sunucuya yayınlama ve giriş, çok kullanıcı (Store hazır, oturum yok).
+- Service worker ile çevrimdışı açılış.
 - Kategori içi elle sıralama (pozisyon alanı var, arayüz yok).
 - Arama sonuçlarında sayfalama; TMDB ilk sayfa, AniList ilk 15 sonuç.
 - Elle içerik ekleme (`manual` kaynağı modelde var).

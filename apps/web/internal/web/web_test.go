@@ -262,3 +262,24 @@ func TestTokensCopyIsFresh(t *testing.T) {
 		t.Fatal("static/tokens.css is stale: run `go generate ./...` in apps/web")
 	}
 }
+
+func TestPWAFiles(t *testing.T) {
+	h := newHarness(t)
+	h.get("/", 200, `rel="manifest"`, `rel="apple-touch-icon"`, `apple-mobile-web-app-capable`, `viewport-fit=cover`)
+	m := h.get("/static/manifest.webmanifest", 200, `"display": "standalone"`, `"name": "Film Arşivi"`)
+	if ct := h.do("GET", "/static/manifest.webmanifest", nil).Header().Get("Content-Type"); ct != "application/manifest+json" {
+		t.Fatal("manifest content type", ct)
+	}
+	tokens, _ := staticFS.ReadFile("static/tokens.css")
+	for _, c := range []string{"#f6f6f9", "#ffffff"} { // background_color, theme_color
+		if !strings.Contains(m, c) || !strings.Contains(string(tokens), c) {
+			t.Fatalf("manifest color %s must come from tokens.css", c)
+		}
+	}
+	for _, p := range []string{"/static/apple-touch-icon.png", "/static/icon-192.png", "/static/icon-512.png"} {
+		rec := h.do("GET", p, nil)
+		if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/png" {
+			t.Fatal(p, rec.Code, rec.Header().Get("Content-Type"))
+		}
+	}
+}

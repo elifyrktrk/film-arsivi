@@ -5,7 +5,8 @@
 // Environment (also read from a .env file next to go.mod when present):
 //
 //	TMDB_API_KEY  TMDB v3 key or v4 read token (eyJ…). Optional: without it only anime is searched.
-//	ADDR          listen address, default 127.0.0.1:8080 (PORT alone also works)
+//	ADDR          listen address, default 0.0.0.0:8080 so an iPhone on the same Wi-Fi
+//	              can open it (PORT alone also works; 127.0.0.1:8080 keeps it on this Mac)
 //	DB_PATH       SQLite file, default data/film-arsivi.db
 //	LOG_LEVEL     debug | info | warn | error, default info
 package main
@@ -14,7 +15,9 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -63,7 +66,7 @@ func run(log *slog.Logger) error {
 	}
 	addr := os.Getenv("ADDR")
 	if addr == "" {
-		addr = "127.0.0.1:" + env("PORT", "8080")
+		addr = "0.0.0.0:" + env("PORT", "8080")
 	}
 	httpSrv := &http.Server{
 		Addr:              addr,
@@ -76,11 +79,14 @@ func run(log *slog.Logger) error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
 	errc := make(chan error, 1)
-	go func() {
-		log.Info("listening", "url", "http://"+addr, "db", dbPath, "tmdb", search.TMDBEnabled())
-		errc <- httpSrv.ListenAndServe()
-	}()
+	log.Info("listening", "addr", ln.Addr().String(), "db", dbPath, "tmdb", search.TMDBEnabled())
+	printURLs(ln.Addr().String())
+	go func() { errc <- httpSrv.Serve(ln) }()
 	select {
 	case err := <-errc:
 		if !errors.Is(err, http.ErrServerClosed) {
@@ -132,4 +138,41 @@ func loadDotEnv(path string) {
 			os.Setenv(k, v)
 		}
 	}
+}
+
+// printURLs prints where to open the site: on this machine and, when listening on all
+// interfaces, from a phone on the same network.
+func printURLs(addr string) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "\n  Bu Mac'te:      http://localhost:%s\n", port)
+	if host == "" || host == "0.0.0.0" || host == "::" {
+		for _, ip := range lanIPs() {
+			fmt.Fprintf(os.Stderr, "  iPhone'dan:     http://%s:%s   (aynı Wi-Fi)\n", ip, port)
+		}
+	}
+	fmt.Fprintln(os.Stderr)
+}
+
+// lanIPs returns this machine's private IPv4 addresses on interfaces that are up.
+func lanIPs() []string {
+	var out []string
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	for _, ifc := range ifaces {
+		if ifc.Flags&net.FlagUp == 0 || ifc.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, _ := ifc.Addrs()
+		for _, a := range addrs {
+			if n, ok := a.(*net.IPNet); ok && n.IP.To4() != nil && n.IP.IsPrivate() {
+				out = append(out, n.IP.String())
+			}
+		}
+	}
+	return out
 }
