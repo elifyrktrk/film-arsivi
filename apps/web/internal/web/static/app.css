@@ -241,11 +241,25 @@ legend.label { margin-bottom: var(--space-sm); padding: 0; }
 .footer a { color: inherit; }
 @media (min-width: 720px) { .footer { padding-bottom: var(--space-xl); } }
 
-/* ---------- community scores (always secondary to the user's own score) ---------- */
-.community { font-size: 12px; line-height: 16px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
-.scoreline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md); }
-.my-score { display: inline-flex; align-items: center; gap: var(--space-sm); text-decoration: none; color: inherit; }
-.my-score-value { display: grid; place-items: center; min-width: 40px; height: 40px; padding: 0 var(--space-xs); border-radius: var(--radius-pill); background: var(--color-marquee); color: #1b1a2e; font-weight: 700; font-size: 17px; }
-.community-score { font-size: 13px; line-height: 18px; color: var(--color-muted); }
-.community-score strong { font-weight: 600; color: var(--color-ink); }
+/* ---------- scores: yours is the headline, the community's is a quiet badge ---------- */
+.scoreline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md) var(--space-lg); margin-top: var(--space-xs); }
+.my-score { display: inline-flex; align-items: center; gap: var(--space-md); text-decoration: none; color: inherit; border-radius: var(--radius-pill); }
+.my-score-value { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--color-marquee); color: #1b1a2e; font-weight: 800; font-size: 24px; font-variant-numeric: tabular-nums; box-shadow: 0 4px 14px rgb(183 121 31 / 0.35); }
+.my-score.empty .my-score-value { background: transparent; color: var(--color-muted); border: 2px dashed var(--color-line); box-shadow: none; font-weight: 600; }
+.my-score-text { display: grid; gap: 2px; }
+.my-score-hint { font-size: 13px; line-height: 18px; color: var(--color-muted); }
+.my-score.empty .my-score-hint { color: var(--color-accent); font-weight: 600; }
+.my-score:hover .my-score-hint { text-decoration: underline; }
+.community-score { display: inline-flex; align-items: center; gap: var(--space-sm); padding-left: var(--space-lg); border-left: 1px solid var(--color-line); }
+.community-votes { font-size: 13px; line-height: 18px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+
+/* Badge: a small source mark + the value. Colors are the sources' own marks, kept small. */
+.cbadge { display: inline-flex; align-items: stretch; border: 1px solid var(--color-line); border-radius: var(--radius-sm); overflow: hidden; font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums; background: var(--color-surface); white-space: nowrap; }
+.cbadge-mark { display: grid; place-items: center; padding: 0 6px; font-size: 10px; font-weight: 800; letter-spacing: 0.02em; }
+.cbadge-val { padding: 1px 7px; font-weight: 600; color: var(--color-ink); }
+.cbadge-imdb .cbadge-mark { background: #f5c518; color: #000; }
+.cbadge-anilist .cbadge-mark { background: #152232; color: #3db4f2; }
+.card-meta .cbadge { font-size: 12px; line-height: 16px; }
+.card-meta .cbadge-mark { font-size: 9px; padding: 0 5px; }
+.card-meta .cbadge-val { padding: 0 6px; }
 .imdb-logo { flex: none; font-weight: 800; padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); background: #f5c518; color: #000; text-decoration: none; }

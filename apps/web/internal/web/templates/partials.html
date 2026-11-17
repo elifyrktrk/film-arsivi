@@ -16,9 +16,8 @@
     <span class="card-meta">
       <span class="kind kind-{{.Title.Kind}}">{{kindLabel .Title.Kind}}</span>
       {{if .Title.Year}}<span>{{.Title.Year}}</span>{{end}}
-      <span class="source" title="{{sourceLabel .Title.Source}}">{{sourceLabel .Title.Source}}</span>
+      {{template "card-source" .Title}}
     </span>
-    {{template "community-small" .Title}}
   </a>
 </li>
 {{end}}
@@ -39,4 +38,8 @@
 {{define "icon-moon"}}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/></svg>{{end}}
 {{define "icon-auto"}}<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16a8 8 0 0 0 0-16z" class="fill"/></svg>{{end}}
 
-{{define "community-small"}}{{with community .}}<span class="community" title="{{.Source}}">{{.Source}} {{.Score}}</span>{{end}}{{end}}
+{{/* One small badge per card: the community score with its source mark, or the plain
+     source tag when there is no score. The user's own score sits on the poster. */}}
+{{define "card-source"}}{{with community .}}{{template "cbadge" .}}{{else}}<span class="source">{{sourceLabel .Source}}</span>{{end}}{{end}}
+
+{{define "cbadge"}}{{/* . = communityScore */}}<span class="cbadge cbadge-{{.Key}}" title="{{.Source}} {{.Score}}"><span class="cbadge-mark">{{.Mark}}</span><span class="cbadge-val">{{.Score}}</span></span>{{end}}

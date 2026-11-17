@@ -10,12 +10,18 @@
     <h1 class="display">{{$t.Name}}</h1>
     {{if $t.OriginalName}}<p class="original">{{$t.OriginalName}}</p>{{end}}
     {{$c := community $t}}{{$mine := ""}}{{if $d.Rating}}{{if $d.Rating.Score}}{{$mine = $d.Rating.Score}}{{end}}{{end}}
-    {{if or $mine $c}}
     <div class="scoreline">
-      {{if $mine}}<a class="my-score" href="#puan"><span class="my-score-value">{{$mine}}</span><span class="label">{{.T.Web.YourScoreShort}}</span></a>{{end}}
-      {{with $c}}<span class="community-score"><span class="label">{{$p.T.Web.Community}}</span> <strong>{{.Source}} {{.Score}}</strong>{{if .Votes}} · {{.Votes}} {{$p.T.Web.Votes}}{{end}}</span>{{end}}
+      <a class="my-score{{if not $mine}} empty{{end}}" href="#puan">
+        <span class="my-score-value">{{if $mine}}{{$mine}}{{else}}–{{end}}</span>
+        <span class="my-score-text"><span class="label">{{.T.Web.YourScoreShort}}</span><span class="my-score-hint">{{if $mine}}/ 10{{else}}{{.T.Web.RateIt}}{{end}}</span></span>
+      </a>
+      {{with $c}}
+      <span class="community-score">
+        {{template "cbadge" .}}
+        {{if .Votes}}<span class="community-votes">{{.Votes}} {{$p.T.Web.Votes}}</span>{{end}}
+      </span>
+      {{end}}
     </div>
-    {{end}}
     <ul class="facts">
       {{if $t.Year}}<li><span class="label">{{.T.Web.Year}}</span>{{$t.Year}}</li>{{end}}
       {{if $t.Genres}}<li><span class="label">{{.T.Web.Genres}}</span>{{join $t.Genres ", "}}</li>{{end}}

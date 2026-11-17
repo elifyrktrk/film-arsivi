@@ -102,6 +102,10 @@ Expo uygulaması bırakıldığı için `packages/core` (TS) artık bir referans
 
 Kullanıcının kendi puanı her zaman önde ve büyük; topluluk puanı yanında, küçük ve ikincil durur. Puan yoksa hiçbir şey gösterilmez.
 
+Görünüm:
+- **Detay:** Solda senin puanın 56pt altın bir daire içinde ("9 · Senin puanın / 10"). Puan vermediysen kesik çizgili boş daire ve "Puan ver" bağlantısı çıkar, puan formuna kaydırır. Sağında ince bir ayraçla topluluk rozeti: kaynağın küçük işareti (IMDb sarısı, AniList laciverti) + değer, IMDb'de yanında soluk oy sayısı.
+- **Kartlar:** En fazla bir küçük rozet, afişin üstünde değil metin satırında; kaynak etiketinin yerini alır. Senin puanın afişin köşesindeki altın rozet olarak kalır. Topluluk puanı yoksa sadece kaynak etiketi görünür.
+
 - **Anime:** AniList'in `averageScore` değeri (0–100) 10 üzerinden tek ondalıkla gösterilir: 89 → "AniList 8,9". Anahtar gerekmez; arama sonuçlarıyla birlikte gelir.
 - **Film ve dizi:** IMDb puanı, IMDb'nin kişisel ve ticari olmayan kullanım için yayınladığı [`title.ratings.tsv.gz`](https://datasets.imdbws.com/title.ratings.tsv.gz) dosyasından gelir (`tconst`, `averageRating`, `numVotes`). Gösterim: "IMDb 8,7 · 2,1 Mn oy". Oy sayısı Türkçe kısaltılır (850, 4,5 B, 45 B, 2,1 Mn).
   - Sunucu açılışta, kayıtlı kopya 23 saatten eskiyse dosyayı indirir, sonra saatte bir kontrol eder (yani günde bir yenilenir). İndirme `imdb_ratings` tablosuna tek transaction içinde tam yenileme olarak yazılır; indirme ya da ayrıştırma yarıda kalırsa eski veri olduğu gibi kalır. Ölçüm: ~1,7 milyon satır, bu Mac'te ~3,5 saniye.

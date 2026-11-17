@@ -61,7 +61,7 @@ type WebStrings struct {
 	DeleteTitle, DeleteBody, DeleteYes, Cancel, Sort, Filter, Score, NoScore,
 	CategoriesSaved, CategoryNamedHelp, AboutStorage, OpenDetail, Year, Genres, Format,
 	SkipToContent, CreateAndAdd string
-	Community, Votes, YourScoreShort, IMDbAttribution, IMDbAttributionEN string
+	Community, Votes, YourScoreShort, RateIt, IMDbAttribution, IMDbAttributionEN string
 	// Colors names the category color keys for labels and screen readers.
 	Colors map[string]string
 }
@@ -187,6 +187,7 @@ var TR = func() Strings {
 		Community:         "Topluluk",
 		Votes:             "oy",
 		YourScoreShort:    "Senin puanın",
+		RateIt:            "Puan ver",
 		IMDbAttribution:   "IMDb puanları IMDb'nin kişisel ve ticari olmayan kullanım için yayınladığı veri setlerinden alınır.",
 		IMDbAttributionEN: "Information courtesy of IMDb (https://www.imdb.com). Used with permission.",
 		Colors: map[string]string{

@@ -18,8 +18,7 @@
         {{with index $d.Scores .TitleID}}<span class="score-badge">{{.}}</span>{{end}}
       </div>
       <span class="card-name">{{.Title.Name}}</span>
-      <span class="card-meta"><span class="kind kind-{{.Title.Kind}}">{{kindLabel .Title.Kind}}</span>{{if .Title.Year}}<span>{{.Title.Year}}</span>{{end}}</span>
-      {{template "community-small" .Title}}
+      <span class="card-meta"><span class="kind kind-{{.Title.Kind}}">{{kindLabel .Title.Kind}}</span>{{if .Title.Year}}<span>{{.Title.Year}}</span>{{end}}{{template "card-source" .Title}}</span>
     </a>
     <form method="post" action="{{categoryURL $c.ID}}/cikar" class="card-action">
       <input type="hidden" name="icerik" value="{{.TitleID}}">

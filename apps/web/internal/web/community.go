@@ -47,6 +47,8 @@ func VotesTR(n int) string {
 
 // communityScore is a source's own average, shown smaller than the user's score.
 type communityScore struct {
+	Key    string // css key: imdb | anilist
+	Mark   string // short source mark shown in the badge
 	Source string // "IMDb" | "AniList"
 	Score  string // "8,7"
 	Votes  string // "2,1 Mn" (IMDb only)
@@ -56,7 +58,7 @@ type communityScore struct {
 // AniList titles use AniList's average; TMDB titles use IMDb via the imdbId from TMDB.
 func (s *Server) communityFor(t domain.Title) *communityScore {
 	if v := AniListScore(t.AniListScore); v != "" {
-		return &communityScore{Source: "AniList", Score: v}
+		return &communityScore{Key: "anilist", Mark: "AniList", Source: "AniList", Score: v}
 	}
 	if t.IMDbID == nil || s.IMDb == nil {
 		return nil
@@ -67,5 +69,5 @@ func (s *Server) communityFor(t domain.Title) *communityScore {
 	if err != nil || r == nil {
 		return nil
 	}
-	return &communityScore{Source: "IMDb", Score: decimalTR(r.Rating), Votes: VotesTR(r.Votes)}
+	return &communityScore{Key: "imdb", Mark: "IMDb", Source: "IMDb", Score: decimalTR(r.Rating), Votes: VotesTR(r.Votes)}
 }

@@ -314,9 +314,9 @@ func TestCommunityScoresOnPages(t *testing.T) {
 		return add(domain.IMDbRating{TConst: "tt0133093", Rating: 8.7, Votes: 2100345})
 	})
 
-	h.get("/icerik/tmdb:movie:603", 200, "IMDb 8,7</strong> · 2,1 Mn oy")
+	h.get("/icerik/tmdb:movie:603", 200, `cbadge-imdb`, `<span class="cbadge-val">8,7</span>`, "2,1 Mn oy", "Puan ver")
 	for _, id := range []string{"tmdb:movie:2", "tmdb:movie:3"} {
-		if body := h.get("/icerik/"+id, 200); strings.Contains(body, "IMDb ") || strings.Contains(body, `class="scoreline"`) {
+		if body := h.get("/icerik/"+id, 200); strings.Contains(body, "IMDb ") || strings.Contains(body, `class="cbadge`) {
 			t.Fatalf("%s: no community score expected", id)
 		}
 	}
@@ -326,7 +326,7 @@ func TestCommunityScoresOnPages(t *testing.T) {
 	f.AniListScore = ip(89)
 	h.anilist.titles["154587"] = f
 	h.get("/icerik/anilist:154587", 200, "AniList 8,9")
-	h.get("/?q=frieren", 200, `class="community" title="AniList">AniList 8,9`)
+	h.get("/?q=frieren", 200, `cbadge-anilist`, `<span class="cbadge-val">8,9</span>`)
 
 	// the user's own score comes first
 	h.post("/icerik/tmdb:movie:603/kayit", url.Values{"score": {"9"}}, http.StatusSeeOther)
@@ -334,12 +334,12 @@ func TestCommunityScoresOnPages(t *testing.T) {
 	if mine, comm := strings.Index(body, `class="my-score"`), strings.Index(body, `class="community-score"`); mine < 0 || comm < mine {
 		t.Fatal("own score must come before the community score")
 	}
-	h.get("/arsiv", 200, `class="community" title="IMDb">IMDb 8,7`)
+	h.get("/arsiv", 200, `title="IMDb 8,7"`)
 
 	// without TMDB there is no IMDb match: nothing shown, quietly
 	h.srv.Search.TMDB = nil
 	h.srv.IMDb = nil
-	if body := h.get("/arsiv", 200); strings.Contains(body, "IMDb 8,7") {
+	if body := h.get("/arsiv", 200); strings.Contains(body, `title="IMDb 8,7"`) {
 		t.Fatal("IMDb score without lookup")
 	}
 }
