@@ -1,0 +1,78 @@
+{{define "content"}}{{$d := .Data}}{{$t := $d.Title}}{{$p := .}}
+{{if $d.Back}}<p class="back"><a href="{{$d.Back}}">← {{.T.Web.Back}}</a></p>{{end}}
+<article class="detail">
+  <div class="detail-poster">{{template "poster" $t}}</div>
+  <div class="detail-body">
+    <p class="eyebrow">
+      <span class="kind kind-{{$t.Kind}}">{{kindLabel $t.Kind}}</span>
+      <span class="source">{{sourceLabel $t.Source}}</span>
+    </p>
+    <h1 class="display">{{$t.Name}}</h1>
+    {{if $t.OriginalName}}<p class="original">{{$t.OriginalName}}</p>{{end}}
+    <ul class="facts">
+      {{if $t.Year}}<li><span class="label">{{.T.Web.Year}}</span>{{$t.Year}}</li>{{end}}
+      {{if $t.Genres}}<li><span class="label">{{.T.Web.Genres}}</span>{{join $t.Genres ", "}}</li>{{end}}
+      {{if $t.Format}}<li><span class="label">{{.T.Web.Format}}</span>{{$t.Format}}</li>{{end}}
+      {{if $t.SeasonCount}}<li>{{.T.Detail.Seasons (deref $t.SeasonCount)}}</li>{{end}}
+      {{if $t.EpisodeCount}}<li>{{.T.Detail.Episodes (deref $t.EpisodeCount)}}</li>{{end}}
+    </ul>
+    {{if $d.Stale}}<p class="notice warn">{{.T.Detail.LoadError}}</p>{{end}}
+    <div class="overview">
+      {{range paragraphs $t.Overview}}<p>{{.}}</p>{{else}}<p class="muted">{{.T.Detail.NoOverview}}</p>{{end}}
+    </div>
+  </div>
+</article>
+
+<div class="panels">
+<section class="panel" id="puan" aria-labelledby="puan-h">
+  <h2 id="puan-h" class="title">{{.T.Detail.YourScore}}</h2>
+  {{if $d.Form.Error}}<p class="error" role="alert">{{$d.Form.Error}}</p>{{end}}
+  {{if eq $d.Saved "puan"}}<p class="ok" role="status">{{.T.Detail.NoteSaved}}</p>{{end}}
+  <form method="post" action="{{titleURL $t.ID}}/kayit" data-busy>
+    <fieldset class="scores">
+      <legend class="sr">{{.T.Detail.YourScore}}</legend>
+      {{range scores}}
+        <label class="score"><input type="radio" name="score" value="{{.}}" {{if eqp $d.Form.Score .}}checked{{end}}><span>{{.}}</span></label>
+      {{end}}
+      <label class="score clear"><input type="radio" name="score" value="" {{if not $d.Form.Score}}checked{{end}}><span>{{.T.Detail.ClearScore}}</span></label>
+    </fieldset>
+
+    <fieldset class="statuses">
+      <legend class="label">{{.T.Detail.Status}}</legend>
+      {{range statuses}}
+        <label class="chip-radio"><input type="radio" name="status" value="{{.}}" {{if eq $d.Form.Status (printf "%s" .)}}checked{{end}}><span>{{statusLabel .}}</span></label>
+      {{end}}
+      <label class="chip-radio"><input type="radio" name="status" value="" {{if not $d.Form.Status}}checked{{end}}><span>{{.T.Web.StatusNone}}</span></label>
+    </fieldset>
+
+    <label class="field">
+      <span class="label">{{.T.Detail.Note}}</span>
+      <textarea name="note" rows="4" maxlength="1000" placeholder="{{.T.Detail.NotePlaceholder}}">{{$d.Form.Note}}</textarea>
+    </label>
+    <button type="submit" class="button">{{.T.Web.Save}}</button>
+  </form>
+</section>
+
+<section class="panel" id="kategoriler" aria-labelledby="kat-h">
+  <h2 id="kat-h" class="title">{{.T.Detail.Categories}}</h2>
+  {{if eq $d.Saved "kategoriler"}}<p class="ok" role="status">{{.T.Web.CategoriesSaved}}</p>{{end}}
+  {{if $d.Categories}}
+  <form method="post" action="{{titleURL $t.ID}}/kategoriler" data-busy>
+    <ul class="checklist">
+      {{range $d.Categories}}
+      <li><label><input type="checkbox" name="kategori" value="{{.ID}}" {{if has $d.InCategories .ID}}checked{{end}}>
+        <span class="dot cat-{{.Color}}" aria-hidden="true"></span><span>{{.Name}}</span></label></li>
+      {{end}}
+    </ul>
+    <div class="row">
+      <button type="submit" class="button">{{.T.Web.Save}}</button>
+      <a class="button ghost" href="/kategoriler/yeni?icerik={{$t.ID}}">+ {{.T.Detail.CreateCategory}}</a>
+    </div>
+  </form>
+  {{else}}
+    <p class="muted">{{.T.Detail.NoCategories}}</p>
+    <a class="button ghost" href="/kategoriler/yeni?icerik={{$t.ID}}">+ {{.T.Detail.CreateCategory}}</a>
+  {{end}}
+</section>
+</div>
+{{end}}

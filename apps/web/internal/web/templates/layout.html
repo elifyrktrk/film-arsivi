@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="tr"{{if ne .Theme "system"}} data-theme="{{.Theme}}"{{end}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{if .Title}}{{.Title}} · {{end}}{{.T.Web.AppName}}</title>
+<link rel="stylesheet" href="/static/tokens.css">
+<link rel="stylesheet" href="/static/app.css">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">{{.T.Web.SkipToContent}}</a>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>{{.T.Web.AppName}}</a>
+    <nav class="tabs" aria-label="Ana menü">
+      <a href="/" {{if eq .Nav "search"}}aria-current="page"{{end}}>{{template "icon-search"}}<span>{{.T.Tabs.Search}}</span></a>
+      <a href="/arsiv" {{if eq .Nav "archive"}}aria-current="page"{{end}}>{{template "icon-archive"}}<span>{{.T.Tabs.Archive}}</span></a>
+      <a href="/kategoriler" {{if eq .Nav "categories"}}aria-current="page"{{end}}>{{template "icon-categories"}}<span>{{.T.Tabs.Categories}}</span></a>
+    </nav>
+    <div class="topbar-end">
+      <form method="post" action="/tema" class="theme" aria-label="{{.T.Web.Theme}}">
+        <input type="hidden" name="geri" value="{{.Path}}">
+        <button name="tema" value="system" {{if eq .Theme "system"}}aria-pressed="true"{{else}}aria-pressed="false"{{end}} title="{{.T.Web.ThemeSystem}}">{{template "icon-auto"}}<span class="sr">{{.T.Web.ThemeSystem}}</span></button>
+        <button name="tema" value="light" {{if eq .Theme "light"}}aria-pressed="true"{{else}}aria-pressed="false"{{end}} title="{{.T.Web.ThemeLight}}">{{template "icon-sun"}}<span class="sr">{{.T.Web.ThemeLight}}</span></button>
+        <button name="tema" value="dark" {{if eq .Theme "dark"}}aria-pressed="true"{{else}}aria-pressed="false"{{end}} title="{{.T.Web.ThemeDark}}">{{template "icon-moon"}}<span class="sr">{{.T.Web.ThemeDark}}</span></button>
+      </form>
+      <a class="about-link" href="/hakkinda" {{if eq .Nav "about"}}aria-current="page"{{end}}>{{.T.Web.About}}</a>
+    </div>
+  </div>
+</header>
+<main id="main" class="wrap">
+{{if .Flash}}<p class="flash" role="status">{{.Flash}}</p>{{end}}
+{{template "content" .}}
+</main>
+<footer class="wrap footer">
+  <p>{{.T.Web.AppName}} · <a href="/hakkinda">{{.T.Web.About}}</a></p>
+</footer>
+<div class="busy" aria-hidden="true"></div>
+</body>
+</html>

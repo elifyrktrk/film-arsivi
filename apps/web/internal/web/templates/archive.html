@@ -1,0 +1,26 @@
+{{define "content"}}{{$d := .Data}}{{$p := .}}
+<header class="page-head">
+  <h1 class="display">{{.T.Archive.Title}}</h1>
+  {{if $d.Total}}<p class="muted">{{.T.Categories.Items $d.Total}}</p>{{end}}
+</header>
+{{if not $d.Total}}
+  {{template "empty" (dict "Heading" .T.Archive.EmptyTitle "Body" .T.Archive.EmptyBody "LinkURL" "/" "LinkText" .T.Archive.GoSearch)}}
+{{else}}
+  <div class="filters">
+    <nav class="chips" aria-label="{{.T.Web.Filter}}">
+      {{range $d.StatusLinks}}<a class="chip" href="{{.URL}}" {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>{{end}}
+    </nav>
+    <nav class="chips sort" aria-label="{{.T.Web.Sort}}">
+      <span class="label">{{.T.Web.Sort}}</span>
+      {{range $d.SortLinks}}<a class="chip small" href="{{.URL}}" {{if .Active}}aria-current="true"{{end}}>{{.Label}}</a>{{end}}
+    </nav>
+  </div>
+  {{if $d.Entries}}
+    <ul class="grid">
+      {{range $d.Entries}}{{template "card" (dict "T" $p.T "Title" .Title "Score" .Rating.Score)}}{{end}}
+    </ul>
+  {{else}}
+    {{template "empty" (dict "Heading" .T.Archive.EmptyFiltered)}}
+  {{end}}
+{{end}}
+{{end}}

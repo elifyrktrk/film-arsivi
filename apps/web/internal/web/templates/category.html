@@ -1,0 +1,33 @@
+{{define "content"}}{{$d := .Data}}{{$c := $d.Category}}{{$p := .}}
+<p class="back"><a href="/kategoriler">← {{.T.Categories.Title}}</a></p>
+<header class="page-head cat-head cat-{{$c.Color}}">
+  <div>
+    <h1 class="display"><span class="dot big cat-{{$c.Color}}" aria-hidden="true"></span>{{$c.Name}}</h1>
+    {{if $c.Description}}<p class="muted">{{$c.Description}}</p>{{end}}
+    <p class="muted small">{{.T.Categories.Items (len $d.Items)}}</p>
+  </div>
+  <a class="button ghost" href="{{categoryURL $c.ID}}/duzenle">{{.T.Categories.Edit}}</a>
+</header>
+{{if $d.Items}}
+<ul class="grid">
+  {{range $d.Items}}
+  <li class="card">
+    <a href="{{titleURL .Title.ID}}?geri={{categoryURL $c.ID}}">
+      <div class="card-poster">
+        {{template "poster" .Title}}
+        {{with index $d.Scores .TitleID}}<span class="score-badge">{{.}}</span>{{end}}
+      </div>
+      <span class="card-name">{{.Title.Name}}</span>
+      <span class="card-meta"><span class="kind kind-{{.Title.Kind}}">{{kindLabel .Title.Kind}}</span>{{if .Title.Year}}<span>{{.Title.Year}}</span>{{end}}</span>
+    </a>
+    <form method="post" action="{{categoryURL $c.ID}}/cikar" class="card-action">
+      <input type="hidden" name="icerik" value="{{.TitleID}}">
+      <button type="submit" class="link-button">{{$p.T.Categories.Remove}}</button>
+    </form>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+  {{template "empty" (dict "Heading" .T.Categories.EmptyCategory "LinkURL" "/" "LinkText" .T.Archive.GoSearch)}}
+{{end}}
+{{end}}

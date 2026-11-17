@@ -1,0 +1,26 @@
+{{define "content"}}{{$cats := .Data}}{{$p := .}}
+<header class="page-head">
+  <h1 class="display">{{.T.Categories.Title}}</h1>
+  {{if $cats}}<a class="button" href="/kategoriler/yeni">+ {{.T.Categories.New}}</a>{{end}}
+</header>
+{{if $cats}}
+<ul class="cat-list">
+  {{range $cats}}
+  <li class="cat-card cat-{{.Color}}">
+    <a href="{{categoryURL .ID}}">
+      <div class="cat-stack" aria-hidden="true">
+        {{range .PreviewPosters}}<img src="{{.}}" alt="" loading="lazy" referrerpolicy="no-referrer">{{else}}<span class="cat-blank"></span>{{end}}
+      </div>
+      <div class="cat-text">
+        <span class="cat-name"><span class="dot cat-{{.Color}}" aria-hidden="true"></span>{{.Name}}</span>
+        {{if .Description}}<span class="cat-desc">{{.Description}}</span>{{end}}
+        <span class="muted small">{{$p.T.Categories.Items .ItemCount}}</span>
+      </div>
+    </a>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+  {{template "empty" (dict "Heading" .T.Categories.EmptyTitle "Body" .T.Categories.EmptyBody "LinkURL" "/kategoriler/yeni" "LinkText" (printf "+ %s" .T.Categories.New))}}
+{{end}}
+{{end}}

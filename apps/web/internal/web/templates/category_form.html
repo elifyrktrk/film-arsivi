@@ -1,0 +1,30 @@
+{{define "content"}}{{$d := .Data}}{{$p := .}}
+<p class="back"><a href="{{if $d.Category}}{{categoryURL $d.Category.ID}}{{else if $d.AddTitle}}{{titleURL $d.AddTitle.ID}}{{else}}/kategoriler{{end}}">← {{.T.Web.Back}}</a></p>
+<section class="panel narrow">
+  <h1 class="title">{{.Title}}</h1>
+  {{if $d.AddTitle}}<p class="muted">{{$d.AddTitle.Name}}</p>{{end}}
+  {{if $d.Error}}<p class="error" role="alert">{{$d.Error}}</p>{{end}}
+  <form method="post" action="{{if $d.Category}}{{categoryURL $d.Category.ID}}{{else}}/kategoriler{{end}}" data-busy>
+    {{if $d.AddTitle}}<input type="hidden" name="icerik" value="{{$d.AddTitle.ID}}">{{end}}
+    <label class="field">
+      <span class="label">{{.T.Categories.Name}}</span>
+      <input name="name" value="{{$d.Input.Name}}" maxlength="40" required placeholder="{{.T.Categories.NamePlaceholder}}" {{if not $d.Category}}autofocus{{end}}>
+      <span class="help">{{.T.Web.CategoryNamedHelp}}</span>
+    </label>
+    <label class="field">
+      <span class="label">{{.T.Categories.Description}}</span>
+      <textarea name="description" rows="2" maxlength="200" placeholder="{{.T.Categories.DescriptionPlaceholder}}">{{$d.Input.Description}}</textarea>
+    </label>
+    <fieldset class="colors">
+      <legend class="label">{{.T.Categories.Color}}</legend>
+      {{range colors}}
+        {{$name := index $p.T.Web.Colors (printf "%s" .)}}<label class="swatch cat-{{.}}" title="{{$name}}"><input type="radio" name="color" value="{{.}}" aria-label="{{$name}}" {{if eq (printf "%s" .) (printf "%s" $d.Input.Color)}}checked{{end}}></label>
+      {{end}}
+    </fieldset>
+    <div class="row">
+      <button type="submit" class="button">{{if $d.Category}}{{.T.Categories.Save}}{{else if $d.AddTitle}}{{.T.Web.CreateAndAdd}}{{else}}{{.T.Categories.Create}}{{end}}</button>
+      {{if $d.Category}}<a class="button danger ghost" href="{{categoryURL $d.Category.ID}}/sil">{{.T.Categories.Delete}}</a>{{end}}
+    </div>
+  </form>
+</section>
+{{end}}
