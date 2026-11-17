@@ -24,6 +24,7 @@ const mediaFields = `
   coverImage { large }
   description(asHtml: false)
   genres
+  averageScore
 `
 
 const searchQuery = `
@@ -54,8 +55,9 @@ type AniListMedia struct {
 	CoverImage *struct {
 		Large *string `json:"large"`
 	} `json:"coverImage"`
-	Description *string  `json:"description"`
-	Genres      []string `json:"genres"`
+	Description  *string  `json:"description"`
+	Genres       []string `json:"genres"`
+	AverageScore *int     `json:"averageScore"`
 }
 
 func nonEmpty(p *string) bool { return p != nil && *p != "" }
@@ -97,7 +99,7 @@ func MapAniListMedia(m AniListMedia) domain.Title {
 		ID: domain.MakeTitleID(domain.SourceAniList, id), Source: domain.SourceAniList, SourceID: id,
 		Kind: domain.KindAnime, Name: name, OriginalName: original, Year: year, PosterURL: poster,
 		Overview: domain.CleanText(m.Description), Genres: genres, Format: m.Format,
-		EpisodeCount: m.Episodes,
+		EpisodeCount: m.Episodes, AniListScore: m.AverageScore,
 	}
 }
 

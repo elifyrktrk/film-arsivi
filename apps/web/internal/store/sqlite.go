@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"filmarsivi/web/internal/domain"
 
@@ -60,7 +61,41 @@ CREATE TABLE IF NOT EXISTS category_items (
   PRIMARY KEY (category_id, title_id)
 );
 CREATE INDEX IF NOT EXISTS category_items_title ON category_items(title_id);
+CREATE TABLE IF NOT EXISTS imdb_ratings (
+  tconst TEXT PRIMARY KEY,
+  rating REAL NOT NULL,
+  votes  INTEGER NOT NULL
+) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS meta (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `
+
+// columnMigrations adds columns introduced after the first release. SQLite has no
+// ADD COLUMN IF NOT EXISTS, so each is applied only when missing.
+var columnMigrations = []struct{ table, column, ddl string }{
+	{"titles", "imdb_id", "ALTER TABLE titles ADD COLUMN imdb_id TEXT"},
+	{"titles", "anilist_score", "ALTER TABLE titles ADD COLUMN anilist_score INTEGER"},
+}
+
+func migrate(db *sql.DB) error {
+	if _, err := db.Exec(schema); err != nil {
+		return err
+	}
+	for _, m := range columnMigrations {
+		var n int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`, m.table, m.column).Scan(&n); err != nil {
+			return err
+		}
+		if n == 0 {
+			if _, err := db.Exec(m.ddl); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
 // OpenSQLite opens (and migrates) the database at path. Use ":memory:" for tests.
 func OpenSQLite(path string) (*SQLite, error) {
@@ -72,7 +107,7 @@ func OpenSQLite(path string) (*SQLite, error) {
 	if path == ":memory:" {
 		db.SetMaxOpenConns(1) // each connection would get its own empty database
 	}
-	if _, err := db.Exec(schema); err != nil {
+	if err := migrate(db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
@@ -83,7 +118,7 @@ func (s *SQLite) Close() error { return s.db.Close() }
 
 type scanner interface{ Scan(dest ...any) error }
 
-const titleCols = `t.id, t.source, t.source_id, t.kind, t.name, t.original_name, t.year, t.poster_url, t.overview, t.genres, t.format, t.season_count, t.episode_count`
+const titleCols = `t.id, t.source, t.source_id, t.kind, t.name, t.original_name, t.year, t.poster_url, t.overview, t.genres, t.format, t.season_count, t.episode_count, t.imdb_id, t.anilist_score`
 
 func nullInt(p sql.NullInt64) *int {
 	if !p.Valid {
@@ -102,17 +137,18 @@ func nullStr(p sql.NullString) *string {
 
 func scanTitle(row scanner, extra ...any) (domain.Title, error) {
 	var (
-		t                              domain.Title
-		orig, poster, overview, format sql.NullString
-		year, seasons, episodes        sql.NullInt64
-		genres                         string
+		t                                    domain.Title
+		orig, poster, overview, format, imdb sql.NullString
+		year, seasons, episodes, score       sql.NullInt64
+		genres                               string
 	)
-	dest := append([]any{&t.ID, &t.Source, &t.SourceID, &t.Kind, &t.Name, &orig, &year, &poster, &overview, &genres, &format, &seasons, &episodes}, extra...)
+	dest := append([]any{&t.ID, &t.Source, &t.SourceID, &t.Kind, &t.Name, &orig, &year, &poster, &overview, &genres, &format, &seasons, &episodes, &imdb, &score}, extra...)
 	if err := row.Scan(dest...); err != nil {
 		return t, err
 	}
 	t.OriginalName, t.PosterURL, t.Overview, t.Format = nullStr(orig), nullStr(poster), nullStr(overview), nullStr(format)
 	t.Year, t.SeasonCount, t.EpisodeCount = nullInt(year), nullInt(seasons), nullInt(episodes)
+	t.IMDbID, t.AniListScore = nullStr(imdb), nullInt(score)
 	if err := json.Unmarshal([]byte(genres), &t.Genres); err != nil || t.Genres == nil {
 		t.Genres = []string{}
 	}
@@ -136,13 +172,14 @@ func (s *SQLite) UpsertTitle(ctx context.Context, t domain.Title) error {
 		genres = []byte("[]")
 	}
 	_, err := s.db.ExecContext(ctx, `
-INSERT INTO titles (id, source, source_id, kind, name, original_name, year, poster_url, overview, genres, format, season_count, episode_count)
-VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+INSERT INTO titles (id, source, source_id, kind, name, original_name, year, poster_url, overview, genres, format, season_count, episode_count, imdb_id, anilist_score)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 ON CONFLICT(id) DO UPDATE SET source=excluded.source, source_id=excluded.source_id, kind=excluded.kind,
   name=excluded.name, original_name=excluded.original_name, year=excluded.year, poster_url=excluded.poster_url,
   overview=excluded.overview, genres=excluded.genres, format=excluded.format,
-  season_count=excluded.season_count, episode_count=excluded.episode_count`,
-		t.ID, t.Source, t.SourceID, t.Kind, t.Name, t.OriginalName, t.Year, t.PosterURL, t.Overview, string(genres), t.Format, t.SeasonCount, t.EpisodeCount)
+  season_count=excluded.season_count, episode_count=excluded.episode_count,
+  imdb_id=COALESCE(excluded.imdb_id, titles.imdb_id), anilist_score=excluded.anilist_score`,
+		t.ID, t.Source, t.SourceID, t.Kind, t.Name, t.OriginalName, t.Year, t.PosterURL, t.Overview, string(genres), t.Format, t.SeasonCount, t.EpisodeCount, t.IMDbID, t.AniListScore)
 	return err
 }
 
@@ -366,4 +403,63 @@ WHERE i.title_id = ? AND c.user_id = ? ORDER BY i.rowid`, titleID, userID)
 		out = append(out, id)
 	}
 	return out, rows.Err()
+}
+
+// ---------- IMDb ratings (shared, not per user) ----------
+
+const imdbUpdatedKey = "imdb_ratings_updated_at"
+
+// ReplaceIMDbRatings swaps the whole table in one transaction; on any error the
+// previous data stays.
+func (s *SQLite) ReplaceIMDbRatings(ctx context.Context, fill func(add func(domain.IMDbRating) error) error) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `DELETE FROM imdb_ratings`); err != nil {
+		return err
+	}
+	stmt, err := tx.PrepareContext(ctx, `INSERT OR REPLACE INTO imdb_ratings (tconst, rating, votes) VALUES (?,?,?)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	if err := fill(func(r domain.IMDbRating) error {
+		_, err := stmt.ExecContext(ctx, r.TConst, r.Rating, r.Votes)
+		return err
+	}); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+		imdbUpdatedKey, time.Now().UTC().Format(time.RFC3339)); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// IMDbUpdatedAt returns when the ratings were last replaced (zero time if never).
+func (s *SQLite) IMDbUpdatedAt(ctx context.Context) (time.Time, error) {
+	var v string
+	err := s.db.QueryRowContext(ctx, `SELECT value FROM meta WHERE key = ?`, imdbUpdatedKey).Scan(&v)
+	if errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, nil
+	}
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Parse(time.RFC3339, v)
+}
+
+// IMDbRating returns the rating for an IMDb id, or nil when unknown.
+func (s *SQLite) IMDbRating(ctx context.Context, tconst string) (*domain.IMDbRating, error) {
+	r := domain.IMDbRating{TConst: tconst}
+	err := s.db.QueryRowContext(ctx, `SELECT rating, votes FROM imdb_ratings WHERE tconst = ?`, tconst).Scan(&r.Rating, &r.Votes)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
 }

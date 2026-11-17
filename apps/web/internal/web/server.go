@@ -41,6 +41,7 @@ type Server struct {
 	Ratings    *domain.RatingService
 	Categories *domain.CategoryService
 	Store      domain.Store
+	IMDb       IMDbLookup // nil hides IMDb scores
 	Log        *slog.Logger
 
 	T     i18n.Strings
@@ -57,6 +58,9 @@ func New(search *domain.SearchService, st domain.Store, log *slog.Logger) (*Serv
 		Log:        log,
 		T:          i18n.TR,
 		cache:      &titleCache{ttl: 15 * time.Minute, items: map[string]cachedTitle{}},
+	}
+	if l, ok := st.(IMDbLookup); ok {
+		s.IMDb = l
 	}
 	pages, err := parseTemplates(s.funcs())
 	if err != nil {

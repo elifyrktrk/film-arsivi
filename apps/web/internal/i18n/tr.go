@@ -61,6 +61,7 @@ type WebStrings struct {
 	DeleteTitle, DeleteBody, DeleteYes, Cancel, Sort, Filter, Score, NoScore,
 	CategoriesSaved, CategoryNamedHelp, AboutStorage, OpenDetail, Year, Genres, Format,
 	SkipToContent, CreateAndAdd string
+	Community, Votes, YourScoreShort, IMDbAttribution, IMDbAttributionEN string
 	// Colors names the category color keys for labels and screen readers.
 	Colors map[string]string
 }
@@ -176,13 +177,18 @@ var TR = func() Strings {
 		CategoryNamedHelp: "En fazla 40 karakter.",
 		// The shared About.Body talks about "this device" (mobile). On the web the
 		// data lives on the server, so the web page uses this text instead.
-		AboutStorage:  "Kişisel film, dizi ve anime arşivin. Herkes kendi puanını verir, ortak puan yok. Puanların ve kategorilerin bu sunucuda saklanır.",
-		OpenDetail:    "Detayı aç",
-		Year:          "Yıl",
-		Genres:        "Tür",
-		Format:        "Biçim",
-		SkipToContent: "İçeriğe geç",
-		CreateAndAdd:  "Oluştur ve bu içeriği ekle",
+		AboutStorage:      "Kişisel film, dizi ve anime arşivin. Herkes kendi puanını verir, ortak puan yok. Puanların ve kategorilerin bu sunucuda saklanır.",
+		OpenDetail:        "Detayı aç",
+		Year:              "Yıl",
+		Genres:            "Tür",
+		Format:            "Biçim",
+		SkipToContent:     "İçeriğe geç",
+		CreateAndAdd:      "Oluştur ve bu içeriği ekle",
+		Community:         "Topluluk",
+		Votes:             "oy",
+		YourScoreShort:    "Senin puanın",
+		IMDbAttribution:   "IMDb puanları IMDb'nin kişisel ve ticari olmayan kullanım için yayınladığı veri setlerinden alınır.",
+		IMDbAttributionEN: "Information courtesy of IMDb (https://www.imdb.com). Used with permission.",
 		Colors: map[string]string{
 			"violet": "Mor", "blue": "Mavi", "teal": "Camgöbeği", "green": "Yeşil", "amber": "Kehribar",
 			"orange": "Turuncu", "red": "Kırmızı", "pink": "Pembe", "slate": "Gri",

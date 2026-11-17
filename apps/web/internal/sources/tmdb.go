@@ -43,6 +43,10 @@ type TMDBItem struct {
 	OriginalLanguage string      `json:"original_language"`
 	NumberOfSeasons  *int        `json:"number_of_seasons"`
 	NumberOfEpisodes *int        `json:"number_of_episodes"`
+	IMDbID           *string     `json:"imdb_id"` // movie details only
+	ExternalIDs      *struct {
+		IMDbID *string `json:"imdb_id"`
+	} `json:"external_ids"` // via append_to_response=external_ids
 }
 
 func yearOf(date *string) *int {
@@ -122,6 +126,13 @@ func MapTMDBItem(it TMDBItem, genreNames func([]int) []string) domain.Title {
 	}
 	if typ == "tv" {
 		t.SeasonCount, t.EpisodeCount = it.NumberOfSeasons, it.NumberOfEpisodes
+	}
+	imdb := it.IMDbID
+	if it.ExternalIDs != nil && nonEmpty(it.ExternalIDs.IMDbID) {
+		imdb = it.ExternalIDs.IMDbID
+	}
+	if nonEmpty(imdb) && strings.HasPrefix(*imdb, "tt") {
+		t.IMDbID = imdb
 	}
 	return t
 }
@@ -241,7 +252,8 @@ func (t *TMDB) GetByID(ctx context.Context, sourceID string) (*domain.Title, err
 		return nil, nil
 	}
 	var it TMDBItem
-	if err := t.get(ctx, "/"+typ+"/"+id, nil, &it); err != nil {
+	params := url.Values{"append_to_response": {"external_ids"}}
+	if err := t.get(ctx, "/"+typ+"/"+id, params, &it); err != nil {
 		if isNotFound(err) {
 			return nil, nil
 		}

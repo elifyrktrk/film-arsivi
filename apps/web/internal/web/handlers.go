@@ -45,7 +45,6 @@ func (s *Server) searchPage(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusBadGateway
 		}
 		for _, t := range res.Results {
-			s.cache.put(t)
 			v := searchResultView{Title: t}
 			if rt, _ := s.Ratings.Get(r.Context(), LocalUser, t.ID); rt != nil {
 				v.Score = rt.Score

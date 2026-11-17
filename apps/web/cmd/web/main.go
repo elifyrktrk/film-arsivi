@@ -56,6 +56,11 @@ func run(log *slog.Logger) error {
 	search := &domain.SearchService{AniList: sources.NewAniList(client)}
 	if key := strings.TrimSpace(os.Getenv("TMDB_API_KEY")); key != "" {
 		search.TMDB = sources.NewTMDB(client, key)
+		// IMDb ratings are matched through TMDB's imdb_id, so they are only useful
+		// (and only downloaded) when TMDB is on.
+		if os.Getenv("IMDB_SYNC") != "off" {
+			go keepIMDbFresh(log, st)
+		}
 	} else {
 		log.Warn("TMDB_API_KEY is not set: searching anime only (AniList)")
 	}
@@ -175,4 +180,32 @@ func lanIPs() []string {
 		}
 	}
 	return out
+}
+
+// keepIMDbFresh downloads IMDb's ratings dataset at startup when the stored copy is
+// older than a day, then checks hourly. A failed download keeps the old data.
+func keepIMDbFresh(log *slog.Logger, st *store.SQLite) {
+	client := &http.Client{Timeout: 10 * time.Minute}
+	check := func() {
+		ctx := context.Background()
+		updated, err := st.IMDbUpdatedAt(ctx)
+		if err != nil {
+			log.Warn("imdb: read state", "err", err)
+			return
+		}
+		if time.Since(updated) < 23*time.Hour {
+			return
+		}
+		start := time.Now()
+		n, err := sources.SyncIMDbRatings(ctx, client, sources.IMDbRatingsURL, st)
+		if err != nil {
+			log.Warn("imdb: download failed, keeping previous ratings", "err", err)
+			return
+		}
+		log.Info("imdb: ratings updated", "rows", n, "took", time.Since(start).Round(time.Second))
+	}
+	check()
+	for range time.Tick(time.Hour) {
+		check()
+	}
 }

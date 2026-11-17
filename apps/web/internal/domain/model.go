@@ -73,6 +73,20 @@ type Title struct {
 	Format       *string `json:"format"`
 	SeasonCount  *int    `json:"seasonCount"`
 	EpisodeCount *int    `json:"episodeCount"`
+
+	// Go-only fields (not in packages/core). Community scores are shown next to,
+	// never instead of, the user's own score.
+	// IMDbID is the IMDb tconst (tt0133093), known from TMDB details.
+	IMDbID *string `json:"imdbId,omitempty"`
+	// AniListScore is AniList's averageScore, 0–100.
+	AniListScore *int `json:"anilistScore,omitempty"`
+}
+
+// IMDbRating is one row of IMDb's title.ratings dataset.
+type IMDbRating struct {
+	TConst string
+	Rating float64 // 1.0–10.0
+	Votes  int
 }
 
 // MakeTitleID builds a stable title id.

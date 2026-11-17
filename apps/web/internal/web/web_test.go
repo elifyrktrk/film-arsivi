@@ -283,3 +283,63 @@ func TestPWAFiles(t *testing.T) {
 		}
 	}
 }
+
+func TestCommunityScoreFormatting(t *testing.T) {
+	cases := map[*int]string{ip(89): "8,9", ip(80): "8,0", ip(7): "0,7", nil: "", ip(0): ""}
+	for in, want := range cases {
+		if got := AniListScore(in); got != want {
+			t.Errorf("AniListScore(%v) = %q, want %q", in, got, want)
+		}
+	}
+	for n, want := range map[int]string{850: "850", 2093: "2,1 B", 45000: "45 B", 1000: "1 B", 2100345: "2,1 Mn", 12_000_000: "12 Mn"} {
+		if got := VotesTR(n); got != want {
+			t.Errorf("VotesTR(%d) = %q, want %q", n, got, want)
+		}
+	}
+}
+
+func TestCommunityScoresOnPages(t *testing.T) {
+	h := newHarness(t)
+	matrix := domain.Title{ID: "tmdb:movie:603", Source: domain.SourceTMDB, SourceID: "movie:603", Kind: domain.KindMovie,
+		Name: "Matrix", Year: ip(1999), Genres: []string{}, IMDbID: sp("tt0133093")}
+	unmatched := domain.Title{ID: "tmdb:movie:2", Source: domain.SourceTMDB, SourceID: "movie:2", Kind: domain.KindMovie,
+		Name: "Eşleşmeyen", Genres: []string{}} // no imdb id
+	noRating := domain.Title{ID: "tmdb:movie:3", Source: domain.SourceTMDB, SourceID: "movie:3", Kind: domain.KindMovie,
+		Name: "Puansız", Genres: []string{}, IMDbID: sp("tt9999999")} // id known, not in dataset
+	h.srv.Search.TMDB = &fakeSource{titles: map[string]domain.Title{"movie:603": matrix, "movie:2": unmatched, "movie:3": noRating}}
+	st := h.srv.Store.(interface {
+		ReplaceIMDbRatings(context.Context, func(func(domain.IMDbRating) error) error) error
+	})
+	st.ReplaceIMDbRatings(context.Background(), func(add func(domain.IMDbRating) error) error {
+		return add(domain.IMDbRating{TConst: "tt0133093", Rating: 8.7, Votes: 2100345})
+	})
+
+	h.get("/icerik/tmdb:movie:603", 200, "IMDb 8,7</strong> · 2,1 Mn oy")
+	for _, id := range []string{"tmdb:movie:2", "tmdb:movie:3"} {
+		if body := h.get("/icerik/"+id, 200); strings.Contains(body, "IMDb ") || strings.Contains(body, `class="scoreline"`) {
+			t.Fatalf("%s: no community score expected", id)
+		}
+	}
+
+	// anime: AniList average, no key needed
+	f := frieren
+	f.AniListScore = ip(89)
+	h.anilist.titles["154587"] = f
+	h.get("/icerik/anilist:154587", 200, "AniList 8,9")
+	h.get("/?q=frieren", 200, `class="community" title="AniList">AniList 8,9`)
+
+	// the user's own score comes first
+	h.post("/icerik/tmdb:movie:603/kayit", url.Values{"score": {"9"}}, http.StatusSeeOther)
+	body := h.get("/icerik/tmdb:movie:603", 200)
+	if mine, comm := strings.Index(body, `class="my-score"`), strings.Index(body, `class="community-score"`); mine < 0 || comm < mine {
+		t.Fatal("own score must come before the community score")
+	}
+	h.get("/arsiv", 200, `class="community" title="IMDb">IMDb 8,7`)
+
+	// without TMDB there is no IMDb match: nothing shown, quietly
+	h.srv.Search.TMDB = nil
+	h.srv.IMDb = nil
+	if body := h.get("/arsiv", 200); strings.Contains(body, "IMDb 8,7") {
+		t.Fatal("IMDb score without lookup")
+	}
+}

@@ -240,3 +240,12 @@ legend.label { margin-bottom: var(--space-sm); padding: 0; }
 .footer { padding-top: var(--space-xl); padding-bottom: 88px; color: var(--color-muted); font-size: 13px; }
 .footer a { color: inherit; }
 @media (min-width: 720px) { .footer { padding-bottom: var(--space-xl); } }
+
+/* ---------- community scores (always secondary to the user's own score) ---------- */
+.community { font-size: 12px; line-height: 16px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.scoreline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md); }
+.my-score { display: inline-flex; align-items: center; gap: var(--space-sm); text-decoration: none; color: inherit; }
+.my-score-value { display: grid; place-items: center; min-width: 40px; height: 40px; padding: 0 var(--space-xs); border-radius: var(--radius-pill); background: var(--color-marquee); color: #1b1a2e; font-weight: 700; font-size: 17px; }
+.community-score { font-size: 13px; line-height: 18px; color: var(--color-muted); }
+.community-score strong { font-weight: 600; color: var(--color-ink); }
+.imdb-logo { flex: none; font-weight: 800; padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); background: #f5c518; color: #000; text-decoration: none; }

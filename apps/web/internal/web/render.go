@@ -88,10 +88,11 @@ func (s *Server) funcs() template.FuncMap {
 			}
 			return m, nil
 		},
-		"scores":   func() []int { return []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10} },
-		"statuses": func() []domain.WatchStatus { return domain.WatchStatuses },
-		"colors":   func() []domain.CategoryColor { return domain.CategoryColors },
-		"join":     strings.Join,
+		"community": s.communityFor,
+		"scores":    func() []int { return []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10} },
+		"statuses":  func() []domain.WatchStatus { return domain.WatchStatuses },
+		"colors":    func() []domain.CategoryColor { return domain.CategoryColors },
+		"join":      strings.Join,
 		"deref": func(p *int) int {
 			if p == nil {
 				return 0

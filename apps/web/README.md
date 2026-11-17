@@ -34,6 +34,7 @@ go generate ./...
 | `ADDR` | `0.0.0.0:8080` | Dinlenecek adres. Varsayılan, aynı Wi-Fi'deki telefonların erişmesine izin verir; sadece bu Mac için `127.0.0.1:8080` ver. |
 | `PORT` | `8080` | `ADDR` yoksa kullanılır. 8080 doluysa (ör. Xcode simülatör aracı) `PORT=8787 go run ./cmd/web`. |
 | `DB_PATH` | `data/film-arsivi.db` | SQLite dosyası. `data/` git'e girmez. |
+| `IMDB_SYNC` | `on` | `off` verilirse IMDb veri dosyası indirilmez. Dosya zaten sadece `TMDB_API_KEY` varken indirilir. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error`. |
 
 `.env` dosyası (varsa) açılışta okunur; ortamda zaten tanımlı olan değişkenleri ezmez. `.env` asla commit edilmez.
@@ -97,6 +98,19 @@ Expo uygulaması bırakıldığı için `packages/core` (TS) artık bir referans
 
 `domain.Store` (`store.Store` takma adıyla da erişilir), `packages/core/src/repository.ts` sözleşmesinin Go hâlidir. Tek fark: kişiye ait her metot şimdiden `userID` alır (`GetRating(ctx, userID, titleID)` gibi). `titles` tablosu ortak bir önbellektir, kullanıcıya bağlı değildir. Şimdilik giriş yok ve tüm istekler `web.LocalUser` (`"local"`) adına çalışır. Hesaplar eklendiğinde bu sabit, oturumdaki kullanıcıyla değişir; şema ve servisler aynı kalır. `categories.user_id` ve `ratings(user_id, title_id)` bunun için var.
 
+## Topluluk puanları (IMDb ve AniList)
+
+Kullanıcının kendi puanı her zaman önde ve büyük; topluluk puanı yanında, küçük ve ikincil durur. Puan yoksa hiçbir şey gösterilmez.
+
+- **Anime:** AniList'in `averageScore` değeri (0–100) 10 üzerinden tek ondalıkla gösterilir: 89 → "AniList 8,9". Anahtar gerekmez; arama sonuçlarıyla birlikte gelir.
+- **Film ve dizi:** IMDb puanı, IMDb'nin kişisel ve ticari olmayan kullanım için yayınladığı [`title.ratings.tsv.gz`](https://datasets.imdbws.com/title.ratings.tsv.gz) dosyasından gelir (`tconst`, `averageRating`, `numVotes`). Gösterim: "IMDb 8,7 · 2,1 Mn oy". Oy sayısı Türkçe kısaltılır (850, 4,5 B, 45 B, 2,1 Mn).
+  - Sunucu açılışta, kayıtlı kopya 23 saatten eskiyse dosyayı indirir, sonra saatte bir kontrol eder (yani günde bir yenilenir). İndirme `imdb_ratings` tablosuna tek transaction içinde tam yenileme olarak yazılır; indirme ya da ayrıştırma yarıda kalırsa eski veri olduğu gibi kalır. Ölçüm: ~1,7 milyon satır, bu Mac'te ~3,5 saniye.
+  - Eşleştirme TMDB üzerinden yapılır: detay isteği `append_to_response=external_ids` ile `imdb_id`'yi alır ve `Title.IMDbID` olarak saklanır. TMDB anahtarı yoksa IMDb puanı sessizce gösterilmez ve dosya hiç indirilmez.
+  - Arama kartlarında IMDb puanı görünmez, çünkü TMDB'nin arama yanıtında `imdb_id` yok ve her sonuç için ayrı istek atmak yavaş olur. Detay sayfasında, ve detayı açılmış (arşive ya da kategoriye eklenmiş) içeriklerin kartlarında görünür.
+- Hakkında sayfasında IMDb atfı Türkçe ve IMDb'nin istediği İngilizce metinle yer alır.
+- `Title`'a eklenen `imdbId` ve `anilistScore` alanları `packages/core`'da yok; Go tarafı artık asıl kaynak olduğu için orada bırakıldı. SQLite şeması eski veritabanlarına bu sütunları kendiliğinden ekler.
+- Canlı indirme testi isteğe bağlı: `IMDB_LIVE=1 go test ./internal/store -run Live -v`.
+
 ## Verilen kararlar
 
 - **Tek form, JS'siz çalışır.** Detay sayfasında puan, durum ve not tek "Kaydet" ile gönderilir (POST, sonra yönlendirme). Kategori üyeliği onay kutularıyla ayrı bir formdur. `static/app.js` yalnızca yükleme göstergesi ve çift gönderim engeli ekler; kapalıyken her şey çalışır.
@@ -108,7 +122,7 @@ Expo uygulaması bırakıldığı için `packages/core` (TS) artık bir referans
 - **Tasarım dili.** Renk, boşluk ve köşe yarıçapları yalnızca `tokens.css` değişkenlerinden gelir; yazı ölçeği `packages/tokens` içindeki `type` ile aynıdır. Afişler her yerde 2:3.
 - **Hakkında metni.** Ortak `about.body` "bu cihazda saklanır" diyor (mobil için doğru). Web'de veri sunucuda durduğu için `Web.AboutStorage` kullanılıyor.
 - **Web'e özel metinler** `i18n.TR.Web` altında; ortak anahtarlara dokunulmadı. Geçersiz renk için web'e özel `invalid_color` hata kodu eklendi (TS'de tip sistemi bunu zaten engelliyor).
-- **Kaynak çökerse.** Arama, bir kaynak yanıt vermezse diğerinin sonuçlarını gösterir ve not düşer; ikisi de yoksa "Tekrar dene" çıkar (502). Detay sayfası kaynak çökünce arşivdeki kayıtlı kopyayı "yüklenemedi" notuyla gösterir. Kaynaktan gelen başlıklar 15 dakika bellekte tutulur, böylece detay sayfası ve ardından gelen form aynı isteği tekrar atmaz. Arşivdeki bir başlık açıldığında kayıtlı kopya tazelenir.
+- **Kaynak çökerse.** Arama, bir kaynak yanıt vermezse diğerinin sonuçlarını gösterir ve not düşer; ikisi de yoksa "Tekrar dene" çıkar (502). Detay sayfası kaynak çökünce arşivdeki kayıtlı kopyayı "yüklenemedi" notuyla gösterir. Kaynağın detay yanıtları 15 dakika bellekte tutulur, böylece detay sayfası ve ardından gelen form aynı isteği tekrar atmaz. Arama sonuçları bu önbelleğe konmaz; onlarda sezon sayısı ve `imdb_id` gibi detay alanları eksiktir. Arşivdeki bir başlık açıldığında kayıtlı kopya tazelenir.
 - **Güvenlik.** Giriş olmasa da başka kökenlerden gelen POST'lar reddedilir (`Origin`/`Sec-Fetch-Site`), sıkı CSP ve temel güvenlik başlıkları gönderilir, `geri` parametresi yalnızca site içi yollara yönlendirir. Sunucu telefondan erişilebilsin diye varsayılan olarak `0.0.0.0` üzerinde dinler (bkz. "iPhone'da deneme").
 - **TMDB atfı.** Hakkında sayfasında TMDB'nin istediği metin hem Türkçe hem orijinal İngilizce hâliyle yer alır. TMDB'nin resmi logosu dosya olarak eklenmedi; yerine metin rozeti var.
 
