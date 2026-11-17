@@ -67,6 +67,7 @@ type WebStrings struct {
 	LoginFailed, InviteTitle, InviteBody, InviteRetry, Logout, SignedInAs, CSRFTitle, CSRFBody,
 	AuthOff, AuthOn string
 	RateLimitedTitle, RateLimited, KitsuAttribution string
+	ViewLabel, ViewGrid, ViewList                   string
 	// Colors names the category color keys for labels and screen readers.
 	Colors map[string]string
 }
@@ -210,6 +211,9 @@ var TR = func() Strings {
 		SignedInAs:        "Giriş yapan",
 		CSRFTitle:         "Form süresi doldu",
 		CSRFBody:          "Güvenlik için bu formu yeniden göndermen gerekiyor. Sayfayı yenileyip tekrar dene.",
+		ViewLabel:         "Görünüm",
+		ViewGrid:          "Izgara",
+		ViewList:          "Liste",
 		RateLimitedTitle:  "Biraz yavaşlayalım",
 		RateLimited:       "AniList kısa bir mola istedi, çok sık arama yapıldı. Birkaç saniye sonra tekrar dene.",
 		KitsuAttribution:  "Yarım yazılan anime adları Kitsu üzerinden AniList'teki karşılıklarıyla eşleştirilir.",

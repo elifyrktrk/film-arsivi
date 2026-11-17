@@ -2,6 +2,8 @@ package web
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -51,8 +53,29 @@ func parseTemplates(funcs template.FuncMap) (map[string]*template.Template, erro
 	return pages, nil
 }
 
+// assetURL adds a content hash to a static file's URL so browsers fetch the new
+// version right after a deploy instead of serving a cached copy.
+func assetURL(name string) string {
+	b, err := staticFS.ReadFile("static/" + name)
+	if err != nil {
+		return "/static/" + name
+	}
+	sum := sha256.Sum256(b)
+	return "/static/" + name + "?v=" + hex.EncodeToString(sum[:4])
+}
+
 func (s *Server) funcs() template.FuncMap {
+	assets := map[string]string{}
+	for _, n := range []string{"tokens.css", "app.css", "app.js"} {
+		assets[n] = assetURL(n)
+	}
 	return template.FuncMap{
+		"asset": func(name string) string {
+			if u, ok := assets[name]; ok {
+				return u
+			}
+			return "/static/" + name
+		},
 		"kindLabel":   func(k domain.MediaKind) string { return s.T.Kind[string(k)] },
 		"sourceLabel": func(src domain.Source) string { return s.T.Source[string(src)] },
 		"statusLabel": func(st any) string {

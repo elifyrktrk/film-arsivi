@@ -172,7 +172,7 @@ func TestRatingFlow(t *testing.T) {
 	h.get("/arsiv", 200, "Frieren", `class="score-badge"`)
 	h.get("/arsiv?durum=watched&sirala=score", 200, "Frieren")
 	h.get("/arsiv?durum=planned", 200, "Bu filtrede içerik yok.")
-	h.get("/?q=frieren", 200, `class="score-badge"`)
+	h.get("/?q=frieren", 200, `class="row-score"`, `class="rows"`)
 
 	// invalid score is rejected with the Turkish message and keeps input
 	rec = h.post("/icerik/anilist:154587/kayit", url.Values{"score": {"11"}, "note": {"x"}}, http.StatusUnprocessableEntity)
@@ -382,4 +382,25 @@ func TestLiveSearchFragmentAndRateLimit(t *testing.T) {
 
 	h.anilist.err = limited{}
 	h.get("/?q=frieren", http.StatusBadGateway, "Biraz yavaşlayalım", "AniList kısa bir mola istedi")
+}
+
+func TestGridListToggleIsRemembered(t *testing.T) {
+	h := newHarness(t)
+	h.post("/icerik/anilist:154587/kayit", url.Values{"score": {"9"}}, http.StatusSeeOther)
+	cat := h.post("/kategoriler", url.Values{"name": {"Liste"}, "color": {"teal"}}, http.StatusSeeOther).Header().Get("Location")
+	h.post("/icerik/anilist:154587/kategoriler", url.Values{"kategori": {strings.TrimPrefix(cat, "/kategoriler/")}}, http.StatusSeeOther)
+
+	h.get("/arsiv", 200, `<ul class="grid">`, `class="score-badge"`, `gorunum=liste`)
+	h.get("/arsiv?durum=watched&gorunum=liste", 200) // switch keeps other params
+	if h.cookies["gorunum"] != "liste" {
+		t.Fatal("view not remembered")
+	}
+	body := h.get("/arsiv", 200, `<ul class="rows">`, `class="row-score"`)
+	if strings.Contains(body, `<ul class="grid">`) {
+		t.Fatal("still grid")
+	}
+	// category detail uses the same component and remembered view, with a remove button per item
+	h.get(cat, 200, `<ul class="rows">`, `/cikar`, "?geri=")
+	h.get("/arsiv?gorunum=izgara", 200, `<ul class="grid">`)
+	h.get(cat, 200, `<ul class="grid">`, `/cikar`)
 }

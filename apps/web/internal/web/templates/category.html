@@ -9,24 +9,8 @@
   <a class="button ghost" href="{{categoryURL $c.ID}}/duzenle">{{.T.Categories.Edit}}</a>
 </header>
 {{if $d.Items}}
-<ul class="grid">
-  {{range $d.Items}}
-  <li class="card">
-    <a href="{{titleURL .Title.ID}}?geri={{categoryURL $c.ID}}">
-      <div class="card-poster">
-        {{template "poster" .Title}}
-        {{with index $d.Scores .TitleID}}<span class="score-badge">{{.}}</span>{{end}}
-      </div>
-      <span class="card-name">{{.Title.Name}}</span>
-      <span class="card-meta"><span class="kind kind-{{.Title.Kind}}">{{kindLabel .Title.Kind}}</span>{{if .Title.Year}}<span>{{.Title.Year}}</span>{{end}}{{template "card-source" .Title}}</span>
-    </a>
-    <form method="post" action="{{categoryURL $c.ID}}/cikar" class="card-action"><input type="hidden" name="csrf" value="{{$.CSRF}}">
-      <input type="hidden" name="icerik" value="{{.TitleID}}">
-      <button type="submit" class="link-button">{{$p.T.Categories.Remove}}</button>
-    </form>
-  </li>
-  {{end}}
-</ul>
+<div class="filters-row end">{{template "view-toggle" (dict "P" $p "V" $d.View)}}</div>
+{{template "collection" (dict "P" $p "Items" $d.Items "View" $d.View.Mode "RemoveFrom" $c.ID)}}
 {{else}}
   {{template "empty" (dict "Heading" .T.Categories.EmptyCategory "LinkURL" "/" "LinkText" .T.Archive.GoSearch)}}
 {{end}}

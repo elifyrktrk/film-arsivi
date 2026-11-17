@@ -13,16 +13,11 @@ import (
 
 // ---------- search ----------
 
-type searchResultView struct {
-	Title domain.Title
-	Score *int
-}
-
 type searchData struct {
 	Query   string
 	Short   bool // fewer than 2 characters
 	Failed  bool
-	Results []searchResultView
+	Results []itemView
 	Sources domain.SourceStates
 }
 
@@ -45,7 +40,7 @@ func (s *Server) searchPage(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusBadGateway
 		}
 		for _, t := range res.Results {
-			v := searchResultView{Title: t}
+			v := itemView{Title: t, Href: titleURL(t.ID)}
 			if rt, _ := s.Ratings.Get(r.Context(), s.uid(r), t.ID); rt != nil {
 				v.Score = rt.Score
 			}
@@ -66,7 +61,8 @@ func (s *Server) searchPage(w http.ResponseWriter, r *http.Request) {
 // ---------- archive ----------
 
 type archiveData struct {
-	Entries     []domain.ArchiveEntry
+	Items       []itemView
+	View        viewToggle
 	Status      string
 	Sort        string
 	Total       int // entries regardless of filter, to tell "empty" from "empty filter"
@@ -119,7 +115,10 @@ func (s *Server) archivePage(w http.ResponseWriter, r *http.Request) {
 		}
 		total = len(all)
 	}
-	d := archiveData{Entries: entries, Status: statusParam, Sort: string(q.Sort), Total: total}
+	d := archiveData{Status: statusParam, Sort: string(q.Sort), Total: total, View: toggleFor(r, s.viewMode(w, r))}
+	for _, e := range entries {
+		d.Items = append(d.Items, itemView{Title: e.Title, Score: e.Rating.Score, Href: titleURL(e.Title.ID)})
+	}
 	d.StatusLinks = append(d.StatusLinks, filterLink{s.T.Archive.All, archiveURL("", d.Sort), statusParam == ""})
 	for _, st := range domain.WatchStatuses {
 		d.StatusLinks = append(d.StatusLinks, filterLink{s.T.Status[string(st)], archiveURL(string(st), d.Sort), statusParam == string(st)})
@@ -343,8 +342,8 @@ func (s *Server) requireCategory(w http.ResponseWriter, r *http.Request) *domain
 
 type categoryData struct {
 	Category domain.Category
-	Items    []domain.CategoryItemWithTitle
-	Scores   map[string]*int
+	Items    []itemView
+	View     viewToggle
 }
 
 func (s *Server) categoryPage(w http.ResponseWriter, r *http.Request) {
@@ -357,11 +356,13 @@ func (s *Server) categoryPage(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	d := categoryData{Category: *c, Items: items, Scores: map[string]*int{}}
+	d := categoryData{Category: *c, View: toggleFor(r, s.viewMode(w, r))}
 	for _, it := range items {
+		v := itemView{Title: it.Title, Href: titleURL(it.TitleID) + "?geri=" + url.QueryEscape(categoryURL(c.ID))}
 		if rt, _ := s.Ratings.Get(r.Context(), s.uid(r), it.TitleID); rt != nil {
-			d.Scores[it.TitleID] = rt.Score
+			v.Score = rt.Score
 		}
+		d.Items = append(d.Items, v)
 	}
 	p := s.page(r, "categories", c.Name, d)
 	if r.URL.Query().Get("kaydedildi") != "" {

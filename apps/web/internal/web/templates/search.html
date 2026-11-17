@@ -1,13 +1,12 @@
 {{define "content"}}{{$d := .Data}}
 <section class="search-head">
-  <h1 class="display">{{.T.Search.HintTitle}}</h1>
+  {{if $d.Short}}<h1 class="display">{{.T.Search.HintTitle}}</h1>{{else}}<h1 class="sr">{{.T.Tabs.Search}}</h1>{{end}}
   <form class="searchbar" method="get" action="/" role="search" data-busy data-live-search>
     <label class="sr" for="q">{{.T.Search.Placeholder}}</label>
     {{template "icon-search"}}
     <input id="q" name="q" type="search" value="{{$d.Query}}" placeholder="{{.T.Search.Placeholder}}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" {{if $d.Short}}autofocus{{end}} minlength="2" required aria-controls="sonuclar">
     <button type="submit" class="button">{{.T.Web.SearchButton}}</button>
   </form>
-  {{if not .TMDBEnabled}}<p class="notice">{{.T.Search.TMDBDisabled}}</p>{{end}}
 </section>
 
 <div class="busy-note" aria-hidden="true"><span class="spinner"></span>{{.T.Web.Loading}}</div>
@@ -19,6 +18,7 @@
 {{define "results"}}{{$d := .Data}}{{$p := .}}
 {{if $d.Short}}
   <p class="hint">{{.T.Search.HintBody}}</p>
+  {{if not .TMDBEnabled}}<p class="notice">{{.T.Search.TMDBDisabled}}</p>{{end}}
 {{else if $d.Failed}}
   {{if eq $d.Sources.AniList "limited"}}
     {{template "empty" (dict "Heading" .T.Web.RateLimitedTitle "Body" .T.Web.RateLimited "LinkURL" .Path "LinkText" .T.Search.Retry)}}
@@ -30,11 +30,10 @@
   {{if eq $d.Sources.AniList "limited"}}<p class="notice warn" role="status">{{.T.Web.RateLimited}}</p>
   {{else if eq $d.Sources.AniList "error"}}<p class="notice warn" role="status">{{.T.Search.AniListError}}</p>{{end}}
   {{if $d.Results}}
-    <ul class="grid" aria-label="{{$d.Query}}">
-      {{range $d.Results}}{{template "card" (dict "T" $p.T "Title" .Title "Score" .Score)}}{{end}}
-    </ul>
+    {{template "collection" (dict "P" $p "Items" $d.Results "View" "liste" "RemoveFrom" "")}}
   {{else}}
     {{template "empty" (dict "Heading" (.T.Search.Empty $d.Query) "Body" .T.Search.EmptyBody)}}
+    {{if not .TMDBEnabled}}<p class="notice">{{.T.Search.TMDBDisabled}}</p>{{end}}
   {{end}}
 {{end}}
 {{end}}

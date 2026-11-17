@@ -140,6 +140,14 @@ Expo uygulaması bırakıldığı için `packages/core` (TS) artık bir referans
 - **iOS ana ekran (PWA) ve OAuth: cihazda test edilmedi.** Ana ekrandan açılan uygulamada Google'a gidiş uygulama içi bir tarayıcı sayfasında açılır. iOS sürümüne göre bu sayfanın çerezleri ana ekran uygulamasıyla paylaşılmayabilir; o durumda giriş tamamlanır ama oturum çerezi uygulamaya geçmez ve kullanıcı yeniden giriş sayfasını görür. Önlem olarak state çerezi kaybolursa giriş güvenli biçimde reddedilir ("Giriş yarıda kaldı"), yanlış hesaba oturum açılmaz. Yayından sonra gerçek iPhone'da denenmeli; sorun çıkarsa çözüm, girişi Safari'de yapıp sonra ana ekrana eklemek ya da kısa ömürlü bir tek kullanımlık kodla oturumu uygulamaya aktarmak olur.
 - Sahte bir OIDC sağlayıcıyla test edildi; gerçek Google istemcisiyle henüz denenmedi (anahtar yok).
 
+## Liste ve ızgara
+
+- **Arama sonuçları** kompakt liste satırı: solda 56×84 afiş (2:3, köşe 6), ad en fazla 2 satır, altında tek satır meta (TÜR · yıl · kaynak etiketi ya da topluluk rozeti), sağda varsa senin puanın. Satır ~100pt; 375pt ekranda arama kutusunun altında 6 sonuç tam görünür. Bütün satır tek dokunma hedefi. İsim hatırlamaya çalışırken taramak için liste ızgaradan daha rahat.
+- **Arşivim ve kategori detayı** varsayılan olarak sıkı afiş ızgarası: telefonda 3 sütun (375pt'de afiş ~108×161pt, ad tek satır kırpılmış, puan afiş köşesinde; telefonda TÜR etiketi gizlenir, afiş zaten söylüyor). Masaüstünde sütun sayısı genişliğe göre artar (`auto-fill`, en az 140px; 1280px'te 7 sütun). Sağ üstteki ızgara/liste düğmesi `?gorunum=` ile değişir ve seçim `gorunum` çerezinde 1 yıl hatırlanır; liste görünümü arama satırıyla aynı bileşendir. Liste satırları en fazla 720px genişlikte ortalanır.
+- Kategori detayında her öğenin "Çıkar" düğmesi satır bağlantısının dışında durur (iç içe dokunma hedefi yok).
+- Statik dosyalar (`app.css`, `app.js`, `tokens.css`) içerik özetiyle sürümlenir (`?v=…`), yeni sürüm yayınlanınca tarayıcı eski önbelleği kullanmaz.
+- Ölçüm (375×812, açık ve koyu tema): aramada 6 satır, Arşivim ızgarasında 6 afiş (2 sıra × 3), Arşivim listesinde 5 satır tam görünür.
+
 ## Arama: yarım yazılan adlar, yazarken arama, önbellek
 
 - **Yarım kelimeler (Kitsu yedeği).** AniList'in araması kelime bazlıdır: `frie` hiçbir şey bulmaz, `frieren` bulur. Bu yüzden her anime aramasında AniList ile paralel olarak [Kitsu](https://kitsu.app/)'ya da sorulur (`filter[text]`, `include=mappings`, anahtarsız). AniList 5'ten az sonuç döndürürse Kitsu'nun bulduklarının AniList kimlikleri (`externalSite == "anilist/anime"`) alınır, eksik olanlar **tek bir** AniList `id_in` sorgusuyla çekilir ve AniList sonuçlarının arkasına eklenir. Kaynak etiketi AniList kalır; AniList eşlemesi olmayan Kitsu sonuçları atlanır. Arama başına en fazla 2 ek istek. Kitsu yanıt vermezse arama AniList sonuçlarıyla devam eder.
