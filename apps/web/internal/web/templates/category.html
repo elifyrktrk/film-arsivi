@@ -10,7 +10,7 @@
 </header>
 {{if $d.Items}}
 <div class="filters-row end">{{template "view-toggle" (dict "P" $p "V" $d.View)}}</div>
-{{template "collection" (dict "P" $p "Items" $d.Items "View" $d.View.Mode "RemoveFrom" $c.ID)}}
+{{template "collection" (dict "P" $p "Items" $d.Items "View" $d.View.Mode "RemoveFrom" $c.ID "Quick" false)}}
 {{else}}
   {{template "empty" (dict "Heading" .T.Categories.EmptyCategory "LinkURL" "/" "LinkText" .T.Archive.GoSearch)}}
 {{end}}

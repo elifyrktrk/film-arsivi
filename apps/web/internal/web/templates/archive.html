@@ -19,7 +19,7 @@
     </div>
   </div>
   {{if $d.Items}}
-    {{template "collection" (dict "P" $p "Items" $d.Items "View" $d.View.Mode "RemoveFrom" "")}}
+    {{template "collection" (dict "P" $p "Items" $d.Items "View" $d.View.Mode "RemoveFrom" "" "Quick" false)}}
   {{else}}
     {{template "empty" (dict "Heading" .T.Archive.EmptyFiltered)}}
   {{end}}

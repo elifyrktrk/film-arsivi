@@ -66,8 +66,9 @@ type WebStrings struct {
 	LoginTitle, LoginLead, LoginButton, LoginNote, LoginUnavailable, LoginExpired, LoginUnverified,
 	LoginFailed, InviteTitle, InviteBody, InviteRetry, Logout, SignedInAs, CSRFTitle, CSRFBody,
 	AuthOff, AuthOn string
-	RateLimitedTitle, RateLimited, KitsuAttribution string
-	ViewLabel, ViewGrid, ViewList                   string
+	RateLimitedTitle, RateLimited, KitsuAttribution                           string
+	ViewLabel, ViewGrid, ViewList                                             string
+	Saving, SavedCheck, SaveFailed, BookmarkAdd, BookmarkRemove, TapAgainHint string
 	// Colors names the category color keys for labels and screen readers.
 	Colors map[string]string
 }
@@ -211,6 +212,12 @@ var TR = func() Strings {
 		SignedInAs:        "Giriş yapan",
 		CSRFTitle:         "Form süresi doldu",
 		CSRFBody:          "Güvenlik için bu formu yeniden göndermen gerekiyor. Sayfayı yenileyip tekrar dene.",
+		Saving:            "Kaydediliyor…",
+		SavedCheck:        "Kaydedildi ✓",
+		SaveFailed:        "Kaydedilemedi, tekrar dene",
+		BookmarkAdd:       "İzleyeceğim listesine ekle",
+		BookmarkRemove:    "İzleyeceğim listesinden çıkar",
+		TapAgainHint:      "Dokununca kaydedilir. Seçili olana tekrar dokunursan kaldırılır.",
 		ViewLabel:         "Görünüm",
 		ViewGrid:          "Izgara",
 		ViewList:          "Liste",

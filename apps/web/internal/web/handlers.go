@@ -43,6 +43,9 @@ func (s *Server) searchPage(w http.ResponseWriter, r *http.Request) {
 			v := itemView{Title: t, Href: titleURL(t.ID)}
 			if rt, _ := s.Ratings.Get(r.Context(), s.uid(r), t.ID); rt != nil {
 				v.Score = rt.Score
+				if rt.Status != nil {
+					v.Status = string(*rt.Status)
+				}
 			}
 			d.Results = append(d.Results, v)
 		}

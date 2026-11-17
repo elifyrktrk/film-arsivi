@@ -339,3 +339,30 @@ legend.label { margin-bottom: var(--space-sm); padding: 0; }
   .filters-row .sort .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .filters-row .chip.small { padding: 0 10px; }
 }
+
+/* ---------- tap to save ---------- */
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
+.save-state { font-size: 13px; line-height: 18px; color: var(--color-ok); font-weight: 600; min-height: 18px; text-align: right; }
+.save-state[data-kind="saving"] { color: var(--color-muted); font-weight: 500; }
+.save-state[data-kind="failed"] { color: var(--color-danger); }
+.tap-hint { margin-top: var(--space-sm); }
+.score input:checked + span, .chip-radio input:checked + span { transition: background-color 0.12s, border-color 0.12s; }
+
+/* "İzleyeceğim" bookmark: outline when off, filled when on; 44pt target */
+.bookmark { flex: none; margin: 0; }
+.bookmark button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 0 10px;
+  border: 0; background: none; color: var(--color-muted); border-radius: var(--radius-pill); cursor: pointer; font-weight: 600; font-size: 14px; }
+.bookmark button:hover { color: var(--color-accent); background: var(--color-accentSoft); }
+.bookmark button svg { width: 22px; height: 22px; }
+.bookmark button[aria-pressed="true"] { color: var(--color-accent); }
+.bookmark button[aria-pressed="true"] svg { fill: currentColor; }
+.bookmark.with-text button { border: 1px solid var(--color-line); padding: 0 14px 0 10px; color: var(--color-ink); }
+.bookmark.with-text button[aria-pressed="true"] { background: var(--color-accentSoft); border-color: var(--color-accent); color: var(--color-accent); }
+
+/* search rows: the bookmark sits at the right edge, outside the row link */
+.row-item:has(.bookmark) { display: flex; align-items: center; }
+.row-item:has(.bookmark) .row-link { flex: 1; min-width: 0; }
+
+.toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--color-ink); color: var(--color-bg); padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-pill); font-size: 14px; transition: opacity 0.2s, transform 0.2s; z-index: 30; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }

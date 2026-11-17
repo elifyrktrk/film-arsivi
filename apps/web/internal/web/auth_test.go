@@ -317,3 +317,23 @@ func TestCSRFTokenRequired(t *testing.T) {
 		t.Fatal("forms carry no CSRF token")
 	}
 }
+
+func TestTapToSaveIsPerUser(t *testing.T) {
+	a := newAuthHarness(t, nil)
+	a.login(account("sub-alice", "alice@example.com"))
+	if rec, r := a.postJSON("/icerik/anilist:154587/guncelle", url.Values{"alan": {"status"}, "deger": {"planned"}, "tersine": {"1"}}); rec.Code != 200 || r.Status == nil {
+		t.Fatal(rec.Code, rec.Body)
+	}
+	a.asNewBrowser()
+	// signed out: the save is refused (redirected to the login page), nothing written
+	if rec, _ := a.postJSON("/icerik/anilist:154587/guncelle", url.Values{"alan": {"score"}, "deger": {"3"}}); rec.Code != http.StatusSeeOther {
+		t.Fatal("anonymous autosave accepted", rec.Code)
+	}
+	a.login(account("sub-bob", "bob@example.com"))
+	a.get("/arsiv", 200, "Arşivin boş")
+	// bob's tap starts from bob's (empty) record: planned for him, alice's untouched
+	_, r := a.postJSON("/icerik/anilist:154587/guncelle", url.Values{"alan": {"status"}, "deger": {"planned"}, "tersine": {"1"}})
+	if r.Status == nil || *r.Status != "planned" {
+		t.Fatalf("%+v", r)
+	}
+}

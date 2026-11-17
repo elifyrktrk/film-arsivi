@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -403,4 +404,113 @@ func TestGridListToggleIsRemembered(t *testing.T) {
 	h.get(cat, 200, `<ul class="rows">`, `/cikar`, "?geri=")
 	h.get("/arsiv?gorunum=izgara", 200, `<ul class="grid">`)
 	h.get(cat, 200, `<ul class="grid">`, `/cikar`)
+}
+
+// postJSON sends a form like app.js does (Accept: application/json).
+func (h *harness) postJSON(target string, form url.Values) (*httptest.ResponseRecorder, ratingJSON) {
+	h.t.Helper()
+	if _, explicit := form["csrf"]; !explicit {
+		form.Set("csrf", h.cookies[csrfCookie])
+	}
+	req := httptest.NewRequest("POST", target, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	for k, v := range h.cookies {
+		req.AddCookie(&http.Cookie{Name: k, Value: v})
+	}
+	rec := httptest.NewRecorder()
+	h.h.ServeHTTP(rec, req)
+	var out ratingJSON
+	json.Unmarshal(rec.Body.Bytes(), &out)
+	return rec, out
+}
+
+func TestTapToSave(t *testing.T) {
+	h := newHarness(t)
+	u := "/icerik/anilist:154587/guncelle"
+	field := func(alan, deger string, toggle bool) url.Values {
+		v := url.Values{"alan": {alan}, "deger": {deger}}
+		if toggle {
+			v.Set("tersine", "1")
+		}
+		return v
+	}
+
+	rec, r := h.postJSON(u, field("score", "9", true))
+	if rec.Code != 200 || r.Score == nil || *r.Score != 9 {
+		t.Fatalf("score: %d %s", rec.Code, rec.Body)
+	}
+	_, r = h.postJSON(u, field("status", "planned", true))
+	if r.Status == nil || *r.Status != "planned" || r.Score == nil {
+		t.Fatalf("status must not touch the score: %+v", r)
+	}
+	h.get("/arsiv?durum=planned", 200, "Frieren")
+
+	// tapping the selected value again clears it
+	_, r = h.postJSON(u, field("score", "9", true))
+	if r.Score != nil || r.Status == nil {
+		t.Fatalf("second tap should clear only the score: %+v", r)
+	}
+	_, r = h.postJSON(u, field("status", "planned", true))
+	if r.Status != nil {
+		t.Fatalf("second tap should clear the status: %+v", r)
+	}
+	h.get("/arsiv", 200, "Arşivin boş") // nothing left: the record is gone
+
+	// a different value replaces instead of clearing
+	h.postJSON(u, field("score", "7", true))
+	_, r = h.postJSON(u, field("score", "8", true))
+	if r.Score == nil || *r.Score != 8 {
+		t.Fatalf("%+v", r)
+	}
+
+	// note: trimmed, saved on its own
+	_, r = h.postJSON(u, field("note", "  sakin ve güzel  ", false))
+	if r.Note != "sakin ve güzel" || r.Score == nil {
+		t.Fatalf("%+v", r)
+	}
+
+	// validation errors come back as JSON with the Turkish message
+	rec, r = h.postJSON(u, field("score", "11", false))
+	if rec.Code != http.StatusUnprocessableEntity || r.Error != "Puan 1 ile 10 arasında olmalı." {
+		t.Fatalf("%d %+v", rec.Code, r)
+	}
+	rec, _ = h.postJSON(u, field("nope", "x", false))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatal(rec.Code)
+	}
+	rec, r = h.postJSON("/icerik/anilist:999/guncelle", field("score", "5", false))
+	if rec.Code != http.StatusNotFound || r.Error == "" {
+		t.Fatal(rec.Code)
+	}
+}
+
+func TestTapToSaveNeedsCSRF(t *testing.T) {
+	h := newHarness(t)
+	rec, _ := h.postJSON("/icerik/anilist:154587/guncelle", url.Values{"alan": {"score"}, "deger": {"9"}, "csrf": {""}})
+	if rec.Code != http.StatusForbidden {
+		t.Fatal("POST without CSRF token accepted", rec.Code)
+	}
+	rec, _ = h.postJSON("/icerik/anilist:154587/guncelle", url.Values{"alan": {"score"}, "deger": {"9"}, "csrf": {"forged-token-forged-token-forged-token"}})
+	if rec.Code != http.StatusForbidden {
+		t.Fatal("forged CSRF token accepted", rec.Code)
+	}
+	h.get("/arsiv", 200, "Arşivin boş")
+}
+
+func TestBookmarkWithoutJS(t *testing.T) {
+	h := newHarness(t)
+	body := h.get("/?q=frieren", 200, `class="bookmark"`, `aria-pressed="false"`, `name="tersine" value="1"`, `<span class="sr">İzleyeceğim</span>`)
+	if !strings.Contains(body, `action="/icerik/anilist:154587/guncelle"`) {
+		t.Fatal("no bookmark form on search rows")
+	}
+	// plain form post (no JS): toggles and goes back to the search
+	rec := h.post("/icerik/anilist:154587/guncelle", url.Values{"alan": {"status"}, "deger": {"planned"}, "tersine": {"1"}, "geri": {"/?q=frieren"}}, http.StatusSeeOther)
+	if rec.Header().Get("Location") != "/?q=frieren" {
+		t.Fatal(rec.Header().Get("Location"))
+	}
+	h.get("/?q=frieren", 200, `aria-pressed="true"`)
+	h.get("/icerik/anilist:154587", 200, `data-autosave=`, `<noscript><button type="submit" class="button">Kaydet</button></noscript>`, `class="bookmark with-text"`, `aria-pressed="true"`)
+	h.post("/icerik/anilist:154587/guncelle", url.Values{"alan": {"status"}, "deger": {"planned"}, "tersine": {"1"}, "geri": {"//evil.example"}}, http.StatusSeeOther)
+	h.get("/?q=frieren", 200, `aria-pressed="false"`)
 }

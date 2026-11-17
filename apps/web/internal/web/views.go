@@ -12,6 +12,8 @@ type itemView struct {
 	Title domain.Title
 	Score *int   // the user's own score, if any
 	Href  string // detail link (may carry ?geri=)
+	// Status is the user's watch status ("" when none); drives the bookmark button.
+	Status string
 }
 
 const (

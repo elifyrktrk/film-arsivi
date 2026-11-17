@@ -92,6 +92,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /icerik/{id}", s.titlePage)
 	mux.HandleFunc("POST /icerik/{id}/kayit", s.saveRating)
 	mux.HandleFunc("POST /icerik/{id}/kategoriler", s.saveTitleCategories)
+	mux.HandleFunc("POST /icerik/{id}/guncelle", s.updateField)
 	mux.HandleFunc("GET /hakkinda", s.aboutPage)
 	mux.HandleFunc("POST /tema", s.setTheme)
 	mux.HandleFunc("GET /giris", s.loginPage)

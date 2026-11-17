@@ -82,6 +82,8 @@ func (s *Server) funcs() template.FuncMap {
 			switch v := st.(type) {
 			case domain.WatchStatus:
 				return s.T.Status[string(v)]
+			case string:
+				return s.T.Status[v]
 			case *domain.WatchStatus:
 				if v != nil {
 					return s.T.Status[string(*v)]

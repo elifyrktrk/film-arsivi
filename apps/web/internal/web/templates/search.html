@@ -30,7 +30,7 @@
   {{if eq $d.Sources.AniList "limited"}}<p class="notice warn" role="status">{{.T.Web.RateLimited}}</p>
   {{else if eq $d.Sources.AniList "error"}}<p class="notice warn" role="status">{{.T.Search.AniListError}}</p>{{end}}
   {{if $d.Results}}
-    {{template "collection" (dict "P" $p "Items" $d.Results "View" "liste" "RemoveFrom" "")}}
+    {{template "collection" (dict "P" $p "Items" $d.Results "View" "liste" "RemoveFrom" "" "Quick" true)}}
   {{else}}
     {{template "empty" (dict "Heading" (.T.Search.Empty $d.Query) "Body" .T.Search.EmptyBody)}}
     {{if not .TMDBEnabled}}<p class="notice">{{.T.Search.TMDBDisabled}}</p>{{end}}
