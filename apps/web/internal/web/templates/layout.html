@@ -23,19 +23,32 @@
 <header class="topbar">
   <div class="wrap topbar-inner">
     <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>{{.T.Web.AppName}}</a>
+    {{if or (not .AuthEnabled) .User}}
     <nav class="tabs" aria-label="Ana menü">
       <a href="/" {{if eq .Nav "search"}}aria-current="page"{{end}}>{{template "icon-search"}}<span>{{.T.Tabs.Search}}</span></a>
       <a href="/arsiv" {{if eq .Nav "archive"}}aria-current="page"{{end}}>{{template "icon-archive"}}<span>{{.T.Tabs.Archive}}</span></a>
       <a href="/kategoriler" {{if eq .Nav "categories"}}aria-current="page"{{end}}>{{template "icon-categories"}}<span>{{.T.Tabs.Categories}}</span></a>
     </nav>
+    {{end}}
     <div class="topbar-end">
-      <form method="post" action="/tema" class="theme" aria-label="{{.T.Web.Theme}}">
+      <form method="post" action="/tema" class="theme" aria-label="{{.T.Web.Theme}}"><input type="hidden" name="csrf" value="{{$.CSRF}}">
         <input type="hidden" name="geri" value="{{.Path}}">
         <button name="tema" value="system" {{if eq .Theme "system"}}aria-pressed="true"{{else}}aria-pressed="false"{{end}} title="{{.T.Web.ThemeSystem}}">{{template "icon-auto"}}<span class="sr">{{.T.Web.ThemeSystem}}</span></button>
         <button name="tema" value="light" {{if eq .Theme "light"}}aria-pressed="true"{{else}}aria-pressed="false"{{end}} title="{{.T.Web.ThemeLight}}">{{template "icon-sun"}}<span class="sr">{{.T.Web.ThemeLight}}</span></button>
         <button name="tema" value="dark" {{if eq .Theme "dark"}}aria-pressed="true"{{else}}aria-pressed="false"{{end}} title="{{.T.Web.ThemeDark}}">{{template "icon-moon"}}<span class="sr">{{.T.Web.ThemeDark}}</span></button>
       </form>
       <a class="about-link" href="/hakkinda" {{if eq .Nav "about"}}aria-current="page"{{end}}>{{.T.Web.About}}</a>
+      {{with .User}}
+      <details class="account">
+        <summary aria-label="{{$.T.Web.SignedInAs}}: {{.Email}}">
+          {{if .Picture}}<img src="{{.Picture}}" alt="" referrerpolicy="no-referrer">{{else}}<span class="avatar-fallback">{{initials (or .Name .Email)}}</span>{{end}}
+        </summary>
+        <div class="account-menu">
+          <p class="small"><strong>{{.Name}}</strong><br><span class="muted">{{.Email}}</span></p>
+          <form method="post" action="/auth/cikis"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button type="submit" class="button ghost">{{$.T.Web.Logout}}</button></form>
+        </div>
+      </details>
+      {{end}}
     </div>
   </div>
 </header>

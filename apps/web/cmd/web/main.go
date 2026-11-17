@@ -5,10 +5,17 @@
 // Environment (also read from a .env file next to go.mod when present):
 //
 //	TMDB_API_KEY  TMDB v3 key or v4 read token (eyJ…). Optional: without it only anime is searched.
-//	ADDR          listen address, default 0.0.0.0:8080 so an iPhone on the same Wi-Fi
-//	              can open it (PORT alone also works; 127.0.0.1:8080 keeps it on this Mac)
+//	ADDR          listen address, default 0.0.0.0:8090 so an iPhone on the same Wi-Fi
+//	              can open it (PORT alone also works; 127.0.0.1:8090 keeps it on this Mac)
 //	DB_PATH       SQLite file, default data/film-arsivi.db
 //	LOG_LEVEL     debug | info | warn | error, default info
+//
+// Google sign-in (optional; without both client values the app runs single-user):
+//
+//	GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET  OAuth client (Web application)
+//	BASE_URL        public URL for the redirect URI, default http://localhost:<PORT>
+//	ALLOWED_EMAILS  comma-separated invite list; empty lets any Google account in
+//	OWNER_EMAIL     receives the data created before sign-in was turned on
 package main
 
 import (
@@ -26,6 +33,7 @@ import (
 	"syscall"
 	"time"
 
+	"filmarsivi/web/internal/auth"
 	"filmarsivi/web/internal/domain"
 	"filmarsivi/web/internal/sources"
 	"filmarsivi/web/internal/store"
@@ -69,9 +77,25 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	authCfg := auth.Config{
+		ClientID:     strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
+		ClientSecret: strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET")),
+		BaseURL:      strings.TrimRight(env("BASE_URL", "http://localhost:"+env("PORT", "8090")), "/"),
+		AllowedEmail: auth.ParseEmails(os.Getenv("ALLOWED_EMAILS")),
+		OwnerEmail:   strings.TrimSpace(os.Getenv("OWNER_EMAIL")),
+	}
+	if authCfg.Enabled() {
+		srv.Auth = auth.New(authCfg, st)
+		log.Info("google sign-in on", "redirect_uri", authCfg.RedirectURL(), "invite_list", len(authCfg.AllowedEmail))
+		if len(authCfg.AllowedEmail) == 0 {
+			log.Warn("ALLOWED_EMAILS is empty: any Google account can sign in")
+		}
+	} else {
+		log.Info("google sign-in off: single-user mode (set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)")
+	}
 	addr := os.Getenv("ADDR")
 	if addr == "" {
-		addr = "0.0.0.0:" + env("PORT", "8080")
+		addr = "0.0.0.0:" + env("PORT", "8090")
 	}
 	httpSrv := &http.Server{
 		Addr:              addr,

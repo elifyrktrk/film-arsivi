@@ -1,0 +1,16 @@
+{{define "content"}}{{$d := .Data}}
+<section class="login">
+  <div class="login-card">
+    <span class="login-mark" aria-hidden="true"><span class="brand-mark big"></span></span>
+    <h1 class="display">{{.T.Web.AppName}}</h1>
+    <p class="muted">{{.T.Web.LoginLead}}</p>
+    {{if $d.Error}}<p class="error" role="alert">{{$d.Error}}</p>{{end}}
+    <a class="gsi" href="/auth/google?sonra={{$d.Next}}">
+      <span class="gsi-icon" aria-hidden="true">{{template "google-g"}}</span>
+      <span class="gsi-text">{{.T.Web.LoginButton}}</span>
+    </a>
+    <p class="muted small">{{.T.Web.LoginNote}}</p>
+  </div>
+  <p class="login-foot small"><a href="/hakkinda">{{.T.Web.About}}</a></p>
+</section>
+{{end}}

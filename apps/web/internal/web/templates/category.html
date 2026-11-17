@@ -20,7 +20,7 @@
       <span class="card-name">{{.Title.Name}}</span>
       <span class="card-meta"><span class="kind kind-{{.Title.Kind}}">{{kindLabel .Title.Kind}}</span>{{if .Title.Year}}<span>{{.Title.Year}}</span>{{end}}{{template "card-source" .Title}}</span>
     </a>
-    <form method="post" action="{{categoryURL $c.ID}}/cikar" class="card-action">
+    <form method="post" action="{{categoryURL $c.ID}}/cikar" class="card-action"><input type="hidden" name="csrf" value="{{$.CSRF}}">
       <input type="hidden" name="icerik" value="{{.TitleID}}">
       <button type="submit" class="link-button">{{$p.T.Categories.Remove}}</button>
     </form>

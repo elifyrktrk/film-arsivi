@@ -59,7 +59,10 @@ type harness struct {
 	srv     *Server
 	h       http.Handler
 	anilist *fakeSource
+	cookies map[string]string // a tiny cookie jar
 }
+
+const testCSRF = "test-csrf-token-0123456789abcdef0123456789"
 
 func newHarness(t *testing.T) *harness {
 	anilist := &fakeSource{titles: map[string]domain.Title{"154587": frieren}}
@@ -72,7 +75,7 @@ func newHarness(t *testing.T) *harness {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &harness{t: t, srv: srv, h: srv.Handler(), anilist: anilist}
+	return &harness{t: t, srv: srv, h: srv.Handler(), anilist: anilist, cookies: map[string]string{csrfCookie: testCSRF}}
 }
 
 func (h *harness) do(method, target string, form url.Values) *httptest.ResponseRecorder {
@@ -81,13 +84,29 @@ func (h *harness) do(method, target string, form url.Values) *httptest.ResponseR
 	if form != nil {
 		body = strings.NewReader(form.Encode())
 	}
+	if form != nil {
+		if _, explicit := form["csrf"]; !explicit {
+			form.Set("csrf", h.cookies[csrfCookie])
+		}
+		body = strings.NewReader(form.Encode())
+	}
 	req := httptest.NewRequest(method, target, body)
 	if form != nil {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("Origin", "http://example.com")
 	}
+	for k, v := range h.cookies {
+		req.AddCookie(&http.Cookie{Name: k, Value: v})
+	}
 	rec := httptest.NewRecorder()
 	h.h.ServeHTTP(rec, req)
+	for _, c := range rec.Result().Cookies() {
+		if c.MaxAge < 0 {
+			delete(h.cookies, c.Name)
+		} else {
+			h.cookies[c.Name] = c.Value
+		}
+	}
 	return rec
 }
 

@@ -41,7 +41,7 @@
   <h2 id="puan-h" class="title">{{.T.Detail.YourScore}}</h2>
   {{if $d.Form.Error}}<p class="error" role="alert">{{$d.Form.Error}}</p>{{end}}
   {{if eq $d.Saved "puan"}}<p class="ok" role="status">{{.T.Detail.NoteSaved}}</p>{{end}}
-  <form method="post" action="{{titleURL $t.ID}}/kayit" data-busy>
+  <form method="post" action="{{titleURL $t.ID}}/kayit" data-busy><input type="hidden" name="csrf" value="{{$.CSRF}}">
     <fieldset class="scores">
       <legend class="sr">{{.T.Detail.YourScore}}</legend>
       {{range scores}}
@@ -70,7 +70,7 @@
   <h2 id="kat-h" class="title">{{.T.Detail.Categories}}</h2>
   {{if eq $d.Saved "kategoriler"}}<p class="ok" role="status">{{.T.Web.CategoriesSaved}}</p>{{end}}
   {{if $d.Categories}}
-  <form method="post" action="{{titleURL $t.ID}}/kategoriler" data-busy>
+  <form method="post" action="{{titleURL $t.ID}}/kategoriler" data-busy><input type="hidden" name="csrf" value="{{$.CSRF}}">
     <ul class="checklist">
       {{range $d.Categories}}
       <li><label><input type="checkbox" name="kategori" value="{{.ID}}" {{if has $d.InCategories .ID}}checked{{end}}>

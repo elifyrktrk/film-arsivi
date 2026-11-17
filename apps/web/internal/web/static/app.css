@@ -263,3 +263,32 @@ legend.label { margin-bottom: var(--space-sm); padding: 0; }
 .card-meta .cbadge-mark { font-size: 9px; padding: 0 5px; }
 .card-meta .cbadge-val { padding: 0 6px; }
 .imdb-logo { flex: none; font-weight: 800; padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); background: #f5c518; color: #000; text-decoration: none; }
+
+/* ---------- sign-in ---------- */
+.login { min-height: 60vh; display: grid; place-items: center; align-content: center; gap: var(--space-lg); }
+.login-card { width: 100%; max-width: 400px; display: grid; gap: var(--space-lg); justify-items: center; text-align: center; background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-lg); padding: var(--space-xxl) var(--space-xl); }
+.login-mark { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: var(--color-accentSoft); }
+.brand-mark.big { width: 22px; height: 32px; border-width: 3px; border-radius: 4px; }
+.brand-mark.big::after { inset: 8px 3px auto; height: 6px; }
+.login-foot a { color: var(--color-muted); }
+
+/* "Sign in with Google" button per Google's branding guidelines (light / dark). */
+.gsi { --gsi-bg: #ffffff; --gsi-border: #747775; --gsi-ink: #1f1f1f;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 0 16px 0 12px; width: 100%; max-width: 320px;
+  background: var(--gsi-bg); color: var(--gsi-ink); border: 1px solid var(--gsi-border); border-radius: 22px;
+  font: 500 14px/20px Roboto, system-ui, -apple-system, "Segoe UI", Arial, sans-serif; letter-spacing: 0.25px; text-decoration: none; }
+.gsi:hover { box-shadow: 0 1px 2px rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15); }
+.gsi:active { filter: brightness(0.96); }
+.gsi-icon { display: inline-flex; }
+.gsi .g-logo { width: 20px; height: 20px; stroke: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gsi { --gsi-bg: #131314; --gsi-border: #8e918f; --gsi-ink: #e3e3e3; } }
+:root[data-theme="dark"] .gsi { --gsi-bg: #131314; --gsi-border: #8e918f; --gsi-ink: #e3e3e3; }
+
+.account { position: relative; }
+.account summary { list-style: none; cursor: pointer; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; border: 1px solid var(--color-line); }
+.account summary::-webkit-details-marker { display: none; }
+.account summary img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-fallback { font-size: 13px; font-weight: 700; color: var(--color-accent); }
+.account-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 10; width: 240px; display: grid; gap: var(--space-md); padding: var(--space-lg); background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-md); box-shadow: 0 10px 30px rgb(0 0 0 / 0.18); overflow-wrap: anywhere; }
+.account-menu .button { width: 100%; }
+@media (max-width: 719px) { .account summary { width: 40px; height: 40px; } }

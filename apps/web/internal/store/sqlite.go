@@ -80,7 +80,7 @@ var columnMigrations = []struct{ table, column, ddl string }{
 }
 
 func migrate(db *sql.DB) error {
-	if _, err := db.Exec(schema); err != nil {
+	if _, err := db.Exec(schema + authSchema); err != nil {
 		return err
 	}
 	for _, m := range columnMigrations {

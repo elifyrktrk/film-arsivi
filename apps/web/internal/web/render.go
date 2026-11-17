@@ -10,6 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"filmarsivi/web/internal/auth"
 	"filmarsivi/web/internal/domain"
 	"filmarsivi/web/internal/i18n"
 )
@@ -25,6 +26,9 @@ type Page struct {
 	Flash       string
 	Error       string
 	Data        any
+	CSRF        string     // double-submit token for POST forms
+	User        *auth.User // signed-in user, nil in single-user mode
+	AuthEnabled bool
 }
 
 func parseTemplates(funcs template.FuncMap) (map[string]*template.Template, error) {
@@ -140,6 +144,7 @@ func (s *Server) page(r *http.Request, nav, title string, data any) Page {
 	return Page{
 		T: s.T, Title: title, Nav: nav, Theme: themeOf(r), Path: r.URL.RequestURI(),
 		TMDBEnabled: s.Search.TMDBEnabled(), Data: data,
+		CSRF: csrfOf(r), User: userOf(r), AuthEnabled: s.Auth != nil,
 	}
 }
 

@@ -46,7 +46,7 @@ func (s *Server) searchPage(w http.ResponseWriter, r *http.Request) {
 		}
 		for _, t := range res.Results {
 			v := searchResultView{Title: t}
-			if rt, _ := s.Ratings.Get(r.Context(), LocalUser, t.ID); rt != nil {
+			if rt, _ := s.Ratings.Get(r.Context(), s.uid(r), t.ID); rt != nil {
 				v.Score = rt.Score
 			}
 			d.Results = append(d.Results, v)
@@ -97,14 +97,14 @@ func (s *Server) archivePage(w http.ResponseWriter, r *http.Request) {
 	case domain.SortScore, domain.SortName:
 		q.Sort = sp
 	}
-	entries, err := s.Store.ListArchive(r.Context(), LocalUser, q)
+	entries, err := s.Store.ListArchive(r.Context(), s.uid(r), q)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
 	total := len(entries)
 	if q.Status != "" {
-		all, err := s.Store.ListArchive(r.Context(), LocalUser, domain.ArchiveQuery{})
+		all, err := s.Store.ListArchive(r.Context(), s.uid(r), domain.ArchiveQuery{})
 		if err != nil {
 			s.serverError(w, r, err)
 			return
@@ -162,17 +162,17 @@ func (s *Server) renderTitle(w http.ResponseWriter, r *http.Request, status int,
 		return
 	}
 	ctx := r.Context()
-	rating, err := s.Ratings.Get(ctx, LocalUser, id)
+	rating, err := s.Ratings.Get(ctx, s.uid(r), id)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	cats, err := s.Categories.List(ctx, LocalUser)
+	cats, err := s.Categories.List(ctx, s.uid(r))
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
-	in, err := s.Categories.CategoryIDsForTitle(ctx, LocalUser, id)
+	in, err := s.Categories.CategoryIDsForTitle(ctx, s.uid(r), id)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -214,7 +214,7 @@ func (s *Server) saveRating(w http.ResponseWriter, r *http.Request) {
 		s.renderTitle(w, r, http.StatusBadGateway, &form)
 		return
 	}
-	if _, err := s.Ratings.Update(r.Context(), LocalUser, t, patch); err != nil {
+	if _, err := s.Ratings.Update(r.Context(), s.uid(r), t, patch); err != nil {
 		if _, ok := domain.CodeOf(err); ok {
 			form.Error = s.errorText(err)
 			s.renderTitle(w, r, http.StatusUnprocessableEntity, &form)
@@ -237,7 +237,7 @@ func (s *Server) saveTitleCategories(w http.ResponseWriter, r *http.Request) {
 		s.renderTitle(w, r, http.StatusBadGateway, nil)
 		return
 	}
-	if err := s.Categories.SetCategoriesForTitle(r.Context(), LocalUser, t, r.PostForm["kategori"]); err != nil {
+	if err := s.Categories.SetCategoriesForTitle(r.Context(), s.uid(r), t, r.PostForm["kategori"]); err != nil {
 		if _, ok := domain.CodeOf(err); !ok {
 			s.serverError(w, r, err)
 			return
@@ -249,7 +249,7 @@ func (s *Server) saveTitleCategories(w http.ResponseWriter, r *http.Request) {
 // ---------- categories ----------
 
 func (s *Server) categoriesPage(w http.ResponseWriter, r *http.Request) {
-	cats, err := s.Categories.List(r.Context(), LocalUser)
+	cats, err := s.Categories.List(r.Context(), s.uid(r))
 	if err != nil {
 		s.serverError(w, r, err)
 		return
@@ -298,7 +298,7 @@ func (s *Server) createCategory(w http.ResponseWriter, r *http.Request) {
 			addTitle = &t
 		}
 	}
-	c, err := s.Categories.Create(r.Context(), LocalUser, in)
+	c, err := s.Categories.Create(r.Context(), s.uid(r), in)
 	if err != nil {
 		if _, ok := domain.CodeOf(err); !ok {
 			s.serverError(w, r, err)
@@ -309,7 +309,7 @@ func (s *Server) createCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if addTitle != nil {
-		if err := s.Categories.AddTitle(r.Context(), LocalUser, c.ID, *addTitle); err != nil {
+		if err := s.Categories.AddTitle(r.Context(), s.uid(r), c.ID, *addTitle); err != nil {
 			s.serverError(w, r, err)
 			return
 		}
@@ -321,7 +321,7 @@ func (s *Server) createCategory(w http.ResponseWriter, r *http.Request) {
 
 // requireCategory loads the category in the path or answers 404.
 func (s *Server) requireCategory(w http.ResponseWriter, r *http.Request) *domain.Category {
-	c, err := s.Categories.Get(r.Context(), LocalUser, r.PathValue("id"))
+	c, err := s.Categories.Get(r.Context(), s.uid(r), r.PathValue("id"))
 	if err != nil {
 		s.serverError(w, r, err)
 		return nil
@@ -344,14 +344,14 @@ func (s *Server) categoryPage(w http.ResponseWriter, r *http.Request) {
 	if c == nil {
 		return
 	}
-	items, err := s.Categories.ListItems(r.Context(), LocalUser, c.ID)
+	items, err := s.Categories.ListItems(r.Context(), s.uid(r), c.ID)
 	if err != nil {
 		s.serverError(w, r, err)
 		return
 	}
 	d := categoryData{Category: *c, Items: items, Scores: map[string]*int{}}
 	for _, it := range items {
-		if rt, _ := s.Ratings.Get(r.Context(), LocalUser, it.TitleID); rt != nil {
+		if rt, _ := s.Ratings.Get(r.Context(), s.uid(r), it.TitleID); rt != nil {
 			d.Scores[it.TitleID] = rt.Score
 		}
 	}
@@ -381,7 +381,7 @@ func (s *Server) updateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	in := categoryInputFrom(r)
-	if _, err := s.Categories.Update(r.Context(), LocalUser, c.ID, in); err != nil {
+	if _, err := s.Categories.Update(r.Context(), s.uid(r), c.ID, in); err != nil {
 		if _, ok := domain.CodeOf(err); !ok {
 			s.serverError(w, r, err)
 			return
@@ -406,7 +406,7 @@ func (s *Server) deleteCategory(w http.ResponseWriter, r *http.Request) {
 	if c == nil {
 		return
 	}
-	if err := s.Categories.Remove(r.Context(), LocalUser, c.ID); err != nil {
+	if err := s.Categories.Remove(r.Context(), s.uid(r), c.ID); err != nil {
 		s.serverError(w, r, err)
 		return
 	}
@@ -422,7 +422,7 @@ func (s *Server) removeFromCategory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := s.Categories.RemoveTitle(r.Context(), LocalUser, c.ID, r.PostForm.Get("icerik")); err != nil {
+	if err := s.Categories.RemoveTitle(r.Context(), s.uid(r), c.ID, r.PostForm.Get("icerik")); err != nil {
 		s.serverError(w, r, err)
 		return
 	}

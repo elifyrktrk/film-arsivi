@@ -31,9 +31,13 @@ go generate ./...
 | Değişken | Varsayılan | Açıklama |
 | --- | --- | --- |
 | `TMDB_API_KEY` | boş | TMDB v3 anahtarı ya da `eyJ` ile başlayan v4 okuma token'ı. Yoksa site sadece AniList ile anime arar ve arayüz bunu sakin bir notla söyler. |
-| `ADDR` | `0.0.0.0:8080` | Dinlenecek adres. Varsayılan, aynı Wi-Fi'deki telefonların erişmesine izin verir; sadece bu Mac için `127.0.0.1:8080` ver. |
-| `PORT` | `8080` | `ADDR` yoksa kullanılır. 8080 doluysa (ör. Xcode simülatör aracı) `PORT=8787 go run ./cmd/web`. |
+| `ADDR` | `0.0.0.0:8090` | Dinlenecek adres. Varsayılan, aynı Wi-Fi'deki telefonların erişmesine izin verir; sadece bu Mac için `127.0.0.1:8090` ver. |
+| `PORT` | `8090` | `ADDR` yoksa kullanılır. (8080 bu Mac'te Xcode simülatör aracı tarafından kullanıldığı için varsayılan 8090.) |
 | `DB_PATH` | `data/film-arsivi.db` | SQLite dosyası. `data/` git'e girmez. |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | boş | Google ile giriş. İkisi de boşsa uygulama girişsiz, tek kullanıcılı çalışır (bkz. "Google ile giriş"). |
+| `BASE_URL` | `http://localhost:<PORT>` | Sitenin dışarıdan görünen adresi. Redirect URI `BASE_URL/auth/google/callback` olur; `https://` ile başlıyorsa çerezler `Secure` olur. |
+| `ALLOWED_EMAILS` | boş | Virgülle ayrılmış davet listesi. **Boşsa doğrulanmış e-postası olan her Google hesabı girebilir.** |
+| `OWNER_EMAIL` | boş | Girişten önce oluşturulmuş puan ve kategoriler, bu adresle ilk giriş yapan kişiye aktarılır. |
 | `IMDB_SYNC` | `on` | `off` verilirse IMDb veri dosyası indirilmez. Dosya zaten sadece `TMDB_API_KEY` varken indirilir. |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error`. |
 
@@ -43,7 +47,7 @@ go generate ./...
 
 1. Mac ve iPhone aynı Wi-Fi'de olsun.
 2. Mac'te `go run ./cmd/web` çalıştır. Terminal şöyle bir satır yazar:
-   `iPhone'dan:     http://192.168.x.x:8080   (aynı Wi-Fi)`
+   `iPhone'dan:     http://192.168.x.x:8090   (aynı Wi-Fi)`
 3. iPhone'da Safari'yi aç, bu adrese git.
 4. Paylaş düğmesi → **Ana Ekrana Ekle**. Uygulama kendi simgesiyle, adres çubuğu olmadan tam ekran açılır.
 
@@ -52,7 +56,7 @@ macOS ilk açılışta gelen bağlantılara izin isteyebilir; "İzin Ver" de.
 Bilmen gerekenler:
 
 - **Mac kapalıyken ya da uykudayken çalışmaz.** Uygulama Mac'teki sunucuya bağlanır; veri de Mac'teki SQLite dosyasındadır. Kalıcı kullanım için sunucunun bir barındırma hizmetine (Fly.io, Render gibi, kalıcı diskle) yayınlanması gerekir. Bu sonraki adım.
-- **Giriş yok.** Aynı Wi-Fi'deki herkes adresi bilirse arşivi görüp değiştirebilir. Ev ağında prototip için yeterli; ortak ağlarda `ADDR=127.0.0.1:8080` ile çalıştır. Yayınlamadan önce giriş eklenmeli.
+- **Google girişi LAN adresinde çalışmaz.** Google, redirect URI olarak `192.168.x.x` gibi özel IP'leri kabul etmez; sadece `http://localhost` ya da HTTPS alan adı olabilir. Yani iPhone'dan LAN IP ile girince giriş açıksa oturum açılamaz. iPhone'da girişli kullanım için bir sunucuya yayınla (Fly.io) ya da HTTPS tünel kullan (ör. `cloudflared tunnel --url http://localhost:8090`, sonra `BASE_URL`'i tünel adresi yap ve o adresi Google'a ekle). Giriş kapalıyken (tek kullanıcılı mod) LAN adresi eskisi gibi çalışır, ama aynı Wi-Fi'deki herkes arşivi görüp değiştirebilir.
 - Service worker yok: çevrimdışı çalışmaz. İkonlar ve manifest var, ana ekranda uygulama gibi açılır.
 
 ## Sayfalar
@@ -75,6 +79,7 @@ cmd/synctokens     packages/tokens/dist/tokens.css → internal/web/static/token
 cmd/genicons       uygulama ikonlarını (apple-touch-icon, 192, 512 PNG) üretir
 internal/domain    modeller, kurallar, puan ve kategori servisleri, arama birleştirme, Store arayüzü
 internal/sources   TMDB ve AniList istemcileri
+internal/auth      Google ile giriş: OIDC + PKCE akışı, oturumlar, davet listesi
 internal/store     Store uygulamaları: Memory (referans) ve SQLite (modernc.org/sqlite, CGO yok)
 internal/i18n      tüm Türkçe metinler tek dosyada (tr.go)
 internal/web       handler'lar, html/template şablonları, CSS/JS (embed ile ikiliye gömülü)
@@ -96,7 +101,44 @@ Expo uygulaması bırakıldığı için `packages/core` (TS) artık bir referans
 
 ### Store ve kullanıcılar
 
-`domain.Store` (`store.Store` takma adıyla da erişilir), `packages/core/src/repository.ts` sözleşmesinin Go hâlidir. Tek fark: kişiye ait her metot şimdiden `userID` alır (`GetRating(ctx, userID, titleID)` gibi). `titles` tablosu ortak bir önbellektir, kullanıcıya bağlı değildir. Şimdilik giriş yok ve tüm istekler `web.LocalUser` (`"local"`) adına çalışır. Hesaplar eklendiğinde bu sabit, oturumdaki kullanıcıyla değişir; şema ve servisler aynı kalır. `categories.user_id` ve `ratings(user_id, title_id)` bunun için var.
+`domain.Store` (`store.Store` takma adıyla da erişilir), `packages/core/src/repository.ts` sözleşmesinin Go hâlidir. Tek fark: kişiye ait her metot `userID` alır (`GetRating(ctx, userID, titleID)` gibi). `ratings` `(user_id, title_id)` ile, `categories` `user_id` ile ayrılır; `category_items` kategorisinin sahibi üzerinden süzülür (başka birinin kategori kimliğiyle yapılan okuma, ekleme, çıkarma, silme sessizce etkisizdir ya da 404 döner). `titles` ve `imdb_ratings` herkese ortak önbellektir. Giriş açıkken her istek oturumdaki kullanıcı adına, kapalıyken `web.LocalUser` (`"local"`) adına çalışır. Kategori adı benzersizliği kullanıcı başınadır.
+
+## Google ile giriş
+
+İsteğe bağlıdır. `GOOGLE_CLIENT_ID` ve `GOOGLE_CLIENT_SECRET` boşsa uygulama bugünkü gibi girişsiz ve tek kullanıcılı çalışır; Hakkında sayfası bunu söyler. İkisi de doluysa her sayfa giriş ister (Hakkında ve giriş sayfaları hariç).
+
+### Google OAuth istemcisi oluşturma
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → yeni bir proje oluştur (ör. "Film Arşivi").
+2. **APIs & Services → OAuth consent screen**: User type **External**. Uygulama adı, destek e-postası. Scopes: `openid`, `email`, `profile` (hassas olmayan kapsamlar, Google incelemesi gerekmez). Yayın durumu **Testing** kalabilir; **Test users** listesine kendi ve arkadaşlarının Gmail adreslerini ekle (Testing'de en fazla 100 test kullanıcısı girebilir).
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**: Application type **Web application**.
+   - **Authorized redirect URIs**: `http://localhost:8090/auth/google/callback` ve ileride yayın adresi, ör. `https://film-arsivi.fly.dev/auth/google/callback`.
+   - Authorized JavaScript origins gerekmez (akış tamamen sunucu tarafında).
+4. Çıkan Client ID ve Client secret'ı `.env`'e yaz:
+   ```
+   GOOGLE_CLIENT_ID=....apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=GOCSPX-...
+   BASE_URL=http://localhost:8090
+   ALLOWED_EMAILS=sen@gmail.com,arkadas@gmail.com
+   OWNER_EMAIL=sen@gmail.com
+   ```
+5. `go run ./cmd/web`, sonra http://localhost:8090 → "Google ile oturum açın".
+
+### Nasıl çalışıyor
+
+- **Akış:** Sunucu tarafı OpenID Connect, Authorization Code + PKCE (S256) + `state` + `nonce`. `golang.org/x/oauth2` ve `github.com/coreos/go-oidc/v3` kullanılır; ID token'ın imzası, `iss`, `aud`, süresi ve `nonce`'u doğrulanır, `email_verified` şarttır. Kendi kripto kodu yok. Google keşfi (discovery) ilk girişte yapılır, böylece Google'a ulaşılamasa da uygulama açılır.
+- **State:** Her giriş denemesi sunucuda `oauth_flows` tablosunda (state, nonce, PKCE verifier, dönüş adresi) 10 dakika tutulur ve tek kullanımlıktır. State ayrıca bu tarayıcıya `/auth/` yoluna sınırlı bir HttpOnly çerezle bağlanır; başka tarayıcıda başlatılmış bir girişin geri dönüşü reddedilir (login CSRF).
+- **Oturum:** `sessions` tablosunda rastgele 256 bit token'ın SHA-256 özeti tutulur (veritabanı sızsa da oturum çalınamaz). Çerez `oturum`: HttpOnly, SameSite=Lax, `BASE_URL` HTTPS ise Secure, 30 gün. Süresi dolan oturum silinir ve giriş sayfasına yönlendirilir. "Çıkış yap" oturumu sunucuda da siler.
+- **CSRF:** Tüm POST formları çift gönderimli (double-submit) bir token taşır (`csrf` çerezi + gizli alan, sabit zamanlı karşılaştırma). Önceki `Origin`/`Sec-Fetch-Site` kontrolü de duruyor.
+- **Kullanıcılar:** `users` tablosu (`id`, `google_sub`, e-posta, ad, avatar). Kimlik Google'ın değişmeyen `sub` değeriyle eşleşir; e-posta değişirse güncellenir.
+- **Davet listesi:** `ALLOWED_EMAILS` doluysa sadece bu adresler (büyük-küçük harf duyarsız) girebilir; diğerleri "Bu uygulama davetle çalışıyor" sayfasını görür ve oturum açılmaz. Boşsa her doğrulanmış Google hesabı girebilir; bu yüzden yayına almadan önce listeyi doldur.
+- **Mevcut veri:** Giriş açılmadan önce oluşturulan puan ve kategoriler `local` kullanıcısına aittir. `OWNER_EMAIL` ile ilk giriş yapan kişiye tek transaction içinde aktarılır ve bu bir kez olur (`meta` tablosuna yazılır). Sahibin zaten aynı içerik için puanı varsa onunki korunur, eski kopya `local` altında kalır; hiçbir şey silinmez. `OWNER_EMAIL` boşsa eski veri `local` altında durur ve giriş kapatılınca yeniden görünür.
+
+### Bilinen kısıtlar
+
+- **LAN IP ile giriş olmaz.** Google redirect URI olarak sadece `http://localhost` ya da HTTPS alan adı kabul eder; `http://192.168.x.x` reddedilir. iPhone'da girişli kullanım için yayın (Fly.io, Render) ya da HTTPS tünel gerekir.
+- **iOS ana ekran (PWA) ve OAuth: cihazda test edilmedi.** Ana ekrandan açılan uygulamada Google'a gidiş uygulama içi bir tarayıcı sayfasında açılır. iOS sürümüne göre bu sayfanın çerezleri ana ekran uygulamasıyla paylaşılmayabilir; o durumda giriş tamamlanır ama oturum çerezi uygulamaya geçmez ve kullanıcı yeniden giriş sayfasını görür. Önlem olarak state çerezi kaybolursa giriş güvenli biçimde reddedilir ("Giriş yarıda kaldı"), yanlış hesaba oturum açılmaz. Yayından sonra gerçek iPhone'da denenmeli; sorun çıkarsa çözüm, girişi Safari'de yapıp sonra ana ekrana eklemek ya da kısa ömürlü bir tek kullanımlık kodla oturumu uygulamaya aktarmak olur.
+- Sahte bir OIDC sağlayıcıyla test edildi; gerçek Google istemcisiyle henüz denenmedi (anahtar yok).
 
 ## Topluluk puanları (IMDb ve AniList)
 
@@ -132,16 +174,19 @@ Görünüm:
 
 ## Uzun vade: yayınlama ve veri (karar bekliyor, uygulanmadı)
 
+Giriş artık var (Google, sunucu tarafı oturum). Kalan soru verinin nerede duracağı:
+
 Mobil artık bu uygulamanın kendisi olduğu için senkron sorunu kalmadı; asıl soru verinin nerede duracağı ve girişin nasıl yapılacağı. İki yol var:
 
-1. **Go sunucusu + SQLite, kendi barındırmamızda.** Fly.io ya da Render'a kalıcı diskle yayınlanır, basit bir giriş (ör. e-posta ile tek kullanımlık bağlantı ya da davet kodu) eklenir. İleride başka istemciler gerekirse aynı servisler `/api/...` altında JSON olarak da sunulabilir; modeller zaten JSON etiketli. Artısı: tek parça, ucuz, veri bizde. Eksisi: giriş ve yedekleme bize kalır.
+1. **Go sunucusu + SQLite, kendi barındırmamızda.** Fly.io ya da Render'a kalıcı diskle yayınlanır; giriş zaten hazır. İleride başka istemciler gerekirse aynı servisler `/api/...` altında JSON olarak da sunulabilir; modeller zaten JSON etiketli. Artısı: tek parça, ucuz, veri bizde. Eksisi: giriş ve yedekleme bize kalır.
 2. **Supabase.** Postgres + Auth + Row Level Security (`user_id = auth.uid()`). Bu Go sunucusu `domain.Store`'un Postgres uygulamasıyla Supabase veritabanını kullanır, girişi Supabase Auth yapar. Artısı: giriş, e-posta, yedek hazır. Eksisi: üçüncü taraf bağımlılığı, kuralların bir kısmı (benzersiz ad gibi) veritabanı kısıtı olarak da yazılmalı.
 
 Arkadaşlarla küçük bir kullanım için 1. seçenek daha az parçalı; giriş ve çok cihazlı senkron hızlıca gerekirse 2. seçenek daha az iş. Store arayüzü ikisine de hazır.
 
 ## Sonraya bırakılanlar
 
-- Bir sunucuya yayınlama ve giriş, çok kullanıcı (Store hazır, oturum yok).
+- Bir sunucuya yayınlama (Fly.io + kalıcı disk) ve gerçek Google istemcisiyle giriş denemesi.
+- iOS ana ekran uygulamasında girişin cihazda denenmesi.
 - Service worker ile çevrimdışı açılış.
 - Kategori içi elle sıralama (pozisyon alanı var, arayüz yok).
 - Arama sonuçlarında sayfalama; TMDB ilk sayfa, AniList ilk 15 sonuç.

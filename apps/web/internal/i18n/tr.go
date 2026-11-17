@@ -62,6 +62,10 @@ type WebStrings struct {
 	CategoriesSaved, CategoryNamedHelp, AboutStorage, OpenDetail, Year, Genres, Format,
 	SkipToContent, CreateAndAdd string
 	Community, Votes, YourScoreShort, RateIt, IMDbAttribution, IMDbAttributionEN string
+	// Sign-in (Google)
+	LoginTitle, LoginLead, LoginButton, LoginNote, LoginUnavailable, LoginExpired, LoginUnverified,
+	LoginFailed, InviteTitle, InviteBody, InviteRetry, Logout, SignedInAs, CSRFTitle, CSRFBody,
+	AuthOff, AuthOn string
 	// Colors names the category color keys for labels and screen readers.
 	Colors map[string]string
 }
@@ -190,6 +194,23 @@ var TR = func() Strings {
 		RateIt:            "Puan ver",
 		IMDbAttribution:   "IMDb puanları IMDb'nin kişisel ve ticari olmayan kullanım için yayınladığı veri setlerinden alınır.",
 		IMDbAttributionEN: "Information courtesy of IMDb (https://www.imdb.com). Used with permission.",
+		LoginTitle:        "Giriş yap",
+		LoginLead:         "Puanların ve kategorilerin hesabına bağlı kalsın, her cihazdan aynı arşivi gör.",
+		LoginButton:       "Google ile oturum açın",
+		LoginNote:         "Sadece adın, e-posta adresin ve profil fotoğrafın alınır. Hiçbir şey paylaşılmaz.",
+		LoginUnavailable:  "Google'a şu an ulaşılamıyor. Biraz sonra tekrar dene.",
+		LoginExpired:      "Giriş yarıda kaldı ya da süresi doldu. Tekrar dene.",
+		LoginUnverified:   "Bu Google hesabının e-posta adresi doğrulanmamış.",
+		LoginFailed:       "Giriş tamamlanamadı. Tekrar dene.",
+		InviteTitle:       "Bu uygulama davetle çalışıyor",
+		InviteBody:        "Bu hesap davetli listesinde yok. Davet edildiysen davetin geldiği Google hesabıyla gir; değilsen uygulamayı açan kişiden seni eklemesini iste.",
+		InviteRetry:       "Başka bir hesapla dene",
+		Logout:            "Çıkış yap",
+		SignedInAs:        "Giriş yapan",
+		CSRFTitle:         "Form süresi doldu",
+		CSRFBody:          "Güvenlik için bu formu yeniden göndermen gerekiyor. Sayfayı yenileyip tekrar dene.",
+		AuthOff:           "Giriş kapalı: uygulama tek kullanıcılı modda çalışıyor. Google ile giriş için GOOGLE_CLIENT_ID ve GOOGLE_CLIENT_SECRET ekle.",
+		AuthOn:            "Google ile giriş açık. Her kullanıcı sadece kendi puanlarını ve kategorilerini görür.",
 		Colors: map[string]string{
 			"violet": "Mor", "blue": "Mavi", "teal": "Camgöbeği", "green": "Yeşil", "amber": "Kehribar",
 			"orange": "Turuncu", "red": "Kırmızı", "pink": "Pembe", "slate": "Gri",

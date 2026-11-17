@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"filmarsivi/web/internal/auth"
 	"filmarsivi/web/internal/domain"
 	"filmarsivi/web/internal/i18n"
 )
@@ -32,16 +33,16 @@ func init() {
 	_ = mime.AddExtensionType(".webmanifest", "application/manifest+json")
 }
 
-// LocalUser is the only user until sign-in exists. Every store call already takes a
-// user id, so adding accounts means replacing this constant with the session's user.
-const LocalUser = "local"
+// LocalUser owns the data when Google sign-in is not configured (single-user mode).
+const LocalUser = auth.LegacyUserID
 
 type Server struct {
 	Search     *domain.SearchService
 	Ratings    *domain.RatingService
 	Categories *domain.CategoryService
 	Store      domain.Store
-	IMDb       IMDbLookup // nil hides IMDb scores
+	IMDb       IMDbLookup    // nil hides IMDb scores
+	Auth       *auth.Service // nil: single-user mode without sign-in
 	Log        *slog.Logger
 
 	T     i18n.Strings
@@ -93,8 +94,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /icerik/{id}/kategoriler", s.saveTitleCategories)
 	mux.HandleFunc("GET /hakkinda", s.aboutPage)
 	mux.HandleFunc("POST /tema", s.setTheme)
+	mux.HandleFunc("GET /giris", s.loginPage)
+	mux.HandleFunc("GET /auth/google", s.googleStart)
+	mux.HandleFunc("GET "+auth.CallbackPath, s.googleCallback)
+	mux.HandleFunc("POST /auth/cikis", s.logout)
 	mux.HandleFunc("/", s.notFound)
-	return s.middleware(mux)
+	return s.middleware(s.csrfAndAuth(mux))
 }
 
 func cacheStatic(h http.Handler) http.Handler {

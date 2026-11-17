@@ -3,7 +3,7 @@
   <h1 class="title">{{.T.Web.DeleteTitle}}</h1>
   <p><strong><span class="dot cat-{{$c.Color}}" aria-hidden="true"></span>{{$c.Name}}</strong></p>
   <p class="muted">{{.T.Web.DeleteBody}}</p>
-  <form method="post" action="{{categoryURL $c.ID}}/sil" class="row">
+  <form method="post" action="{{categoryURL $c.ID}}/sil" class="row"><input type="hidden" name="csrf" value="{{$.CSRF}}">
     <button type="submit" class="button danger">{{.T.Web.DeleteYes}}</button>
     <a class="button ghost" href="{{categoryURL $c.ID}}/duzenle">{{.T.Web.Cancel}}</a>
   </form>

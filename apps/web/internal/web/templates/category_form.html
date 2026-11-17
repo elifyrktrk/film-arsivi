@@ -4,7 +4,7 @@
   <h1 class="title">{{.Title}}</h1>
   {{if $d.AddTitle}}<p class="muted">{{$d.AddTitle.Name}}</p>{{end}}
   {{if $d.Error}}<p class="error" role="alert">{{$d.Error}}</p>{{end}}
-  <form method="post" action="{{if $d.Category}}{{categoryURL $d.Category.ID}}{{else}}/kategoriler{{end}}" data-busy>
+  <form method="post" action="{{if $d.Category}}{{categoryURL $d.Category.ID}}{{else}}/kategoriler{{end}}" data-busy><input type="hidden" name="csrf" value="{{$.CSRF}}">
     {{if $d.AddTitle}}<input type="hidden" name="icerik" value="{{$d.AddTitle.ID}}">{{end}}
     <label class="field">
       <span class="label">{{.T.Categories.Name}}</span>

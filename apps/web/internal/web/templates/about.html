@@ -2,6 +2,7 @@
 <section class="panel narrow prose">
   <h1 class="display">{{.T.About.Title}}</h1>
   <p>{{.T.Web.AboutStorage}}</p>
+  <p class="notice">{{if .AuthEnabled}}{{.T.Web.AuthOn}}{{else}}{{.T.Web.AuthOff}}{{end}}</p>
   <h2 class="title">{{.T.About.Sources}}</h2>
   <p class="status-line">{{if .TMDBEnabled}}<span class="pill ok">{{.T.About.TMDBStatusOn}}</span>{{else}}<span class="pill">{{.T.About.TMDBStatusOff}}</span>{{end}}</p>
   <div class="attribution">

@@ -366,3 +366,29 @@ func TestCleanText(t *testing.T) {
 		t.Fatalf("%q", *got)
 	}
 }
+
+func TestStoreKeepsCategoriesPerUser(t *testing.T) {
+	eachStore(t, func(t *testing.T, s domain.Store) {
+		svc := newCategories(s)
+		c := must(svc.Create(ctx, "alice", domain.CategoryInput{Name: "Liste", Color: "teal"}))
+		if err := svc.AddTitle(ctx, "alice", c.ID, title("anilist:1", "A")); err != nil {
+			t.Fatal(err)
+		}
+		if got := must(svc.Get(ctx, "bob", c.ID)); got != nil {
+			t.Fatal("bob can read alice's category")
+		}
+		_, err := svc.Update(ctx, "bob", c.ID, domain.CategoryInput{Name: "x", Color: "red"})
+		code(t, err, domain.ErrCategoryNotFound)
+		code(t, svc.AddTitle(ctx, "bob", c.ID, title("anilist:2", "B")), domain.ErrCategoryNotFound)
+		_ = s.DeleteCategoryItem(ctx, "bob", c.ID, "anilist:1")
+		_ = svc.Remove(ctx, "bob", c.ID)
+		if len(must(svc.ListItems(ctx, "bob", c.ID))) != 0 || len(must(svc.List(ctx, "bob"))) != 0 {
+			t.Fatal("bob sees alice's items")
+		}
+		if items := must(svc.ListItems(ctx, "alice", c.ID)); len(items) != 1 {
+			t.Fatal("bob changed alice's category", items)
+		}
+		// same name is fine for another user
+		must(svc.Create(ctx, "bob", domain.CategoryInput{Name: "liste", Color: "red"}))
+	})
+}
