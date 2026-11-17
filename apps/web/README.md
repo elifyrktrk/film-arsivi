@@ -140,6 +140,15 @@ Expo uygulaması bırakıldığı için `packages/core` (TS) artık bir referans
 - **iOS ana ekran (PWA) ve OAuth: cihazda test edilmedi.** Ana ekrandan açılan uygulamada Google'a gidiş uygulama içi bir tarayıcı sayfasında açılır. iOS sürümüne göre bu sayfanın çerezleri ana ekran uygulamasıyla paylaşılmayabilir; o durumda giriş tamamlanır ama oturum çerezi uygulamaya geçmez ve kullanıcı yeniden giriş sayfasını görür. Önlem olarak state çerezi kaybolursa giriş güvenli biçimde reddedilir ("Giriş yarıda kaldı"), yanlış hesaba oturum açılmaz. Yayından sonra gerçek iPhone'da denenmeli; sorun çıkarsa çözüm, girişi Safari'de yapıp sonra ana ekrana eklemek ya da kısa ömürlü bir tek kullanımlık kodla oturumu uygulamaya aktarmak olur.
 - Sahte bir OIDC sağlayıcıyla test edildi; gerçek Google istemcisiyle henüz denenmedi (anahtar yok).
 
+## Dokununca kaydetme
+
+- **Detay sayfasında Kaydet yok.** Puan (1–10) ve durum (İzledim, İzleyeceğim, Yarıda bıraktım) çiplerine dokununca hemen kaydedilir; seçili olana tekrar dokununca kaldırılır. Not, yazmayı bıraktıktan 800 ms sonra, alan odaktan çıkınca ve sayfadan ayrılırken kaydedilir.
+- **İyimser arayüz.** Seçim beklemeden değişir; başlık yanında küçük "Kaydediliyor…" ve ardından 1,5 sn "Kaydedildi ✓" görünür. Hata olursa seçim eski haline döner ve "Kaydedilemedi, tekrar dene" (ya da sunucunun Türkçe hata metni) yazar. Not hata olsa da silinmez, yazdığın yerinde kalır. Hızlı art arda dokunuşlarda sadece son isteğin yanıtı uygulanır.
+- **İzleyeceğim yer imi.** Arama sonuç satırlarının sağında ve detayın üstünde tek dokunuşluk yer imi düğmesi (44pt); boş simge = listede değil, dolu = İzleyeceğim. Detaydaki durum çipleriyle senkron.
+- **Uç nokta:** `POST /icerik/{id}/guncelle` alanları `alan` (`score` | `status` | `note`), `deger` ("" temizler), `tersine=1` (aynı değer zaten seçiliyse temizle), `geri`. `Accept: application/json` ile kaydedilen kaydı JSON döner (`{"score":8,"status":"planned","note":"…"}` ya da `{"error":"…"}`); düz form gönderiminde `geri` adresine yönlenir. Diğer formlar gibi CSRF token'ı ister ve giriş açıkken oturumdaki kullanıcı adına kaydeder.
+- **JavaScript kapalıyken** puan formu eskisi gibi çalışır: "Puanı kaldır", "Belirtilmedi" seçenekleri ve Kaydet düğmesi `<noscript>` içinde görünür; yer imi düğmeleri düz form olarak gönderilip sayfaya geri döner. "Dokununca kaydedilir" ipucu sadece JS açıkken gösterilir.
+- Kategori seçimi detayda hâlâ onay kutuları + Kaydet ile çalışıyor (bu işin kapsamı puan, durum ve nottu).
+
 ## Liste ve ızgara
 
 - **Arama sonuçları** kompakt liste satırı: solda 56×84 afiş (2:3, köşe 6), ad en fazla 2 satır, altında tek satır meta (TÜR · yıl · kaynak etiketi ya da topluluk rozeti), sağda varsa senin puanın. Satır ~100pt; 375pt ekranda arama kutusunun altında 6 sonuç tam görünür. Bütün satır tek dokunma hedefi. İsim hatırlamaya çalışırken taramak için liste ızgaradan daha rahat.
