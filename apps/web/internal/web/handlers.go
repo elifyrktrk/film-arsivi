@@ -52,7 +52,15 @@ func (s *Server) searchPage(w http.ResponseWriter, r *http.Request) {
 			d.Results = append(d.Results, v)
 		}
 	}
-	s.render(w, r, status, "search", s.page(r, "search", title, d))
+	p := s.page(r, "search", title, d)
+	w.Header().Set("Vary", "X-Partial")
+	if r.Header.Get("X-Partial") == "1" {
+		// search-as-you-type: only the results area; the page keeps its URL in sync
+		p.Path = "/?q=" + url.QueryEscape(q)
+		s.renderFragment(w, r, status, "search", "results", p)
+		return
+	}
+	s.render(w, r, status, "search", p)
 }
 
 // ---------- archive ----------

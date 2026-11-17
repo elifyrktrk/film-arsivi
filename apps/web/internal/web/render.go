@@ -165,6 +165,25 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, status int, name
 	buf.WriteTo(w)
 }
 
+// renderFragment executes one named template of a page (no layout).
+func (s *Server) renderFragment(w http.ResponseWriter, r *http.Request, status int, page, name string, p Page) {
+	t, ok := s.pages[page]
+	if !ok {
+		s.serverError(w, r, fmt.Errorf("no template %q", page))
+		return
+	}
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, name, p); err != nil {
+		s.Log.Error("render fragment", "page", page, "name", name, "err", err)
+		http.Error(w, s.T.Web.ServerError, http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(status)
+	buf.WriteTo(w)
+}
+
 type messageData struct {
 	Heading, Body, LinkURL, LinkText string
 }

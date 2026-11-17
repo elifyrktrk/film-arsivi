@@ -34,6 +34,13 @@ query ($search: String, $perPage: Int) {
   }
 }`
 
+const byIDsQuery = `
+query ($ids: [Int], $perPage: Int) {
+  Page(perPage: $perPage) {
+    media(id_in: $ids, type: ANIME, isAdult: false) {` + mediaFields + `}
+  }
+}`
+
 const detailQuery = `
 query ($id: Int) {
   Media(id: $id, type: ANIME) {` + mediaFields + `}
@@ -174,4 +181,30 @@ func (a *AniList) GetByID(ctx context.Context, id string) (*domain.Title, error)
 	}
 	t := MapAniListMedia(*data.Media)
 	return &t, nil
+}
+
+// GetByIDs loads several titles in one request, keeping the order of ids.
+func (a *AniList) GetByIDs(ctx context.Context, ids []int) ([]domain.Title, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var data struct {
+		Page struct {
+			Media []AniListMedia `json:"media"`
+		} `json:"Page"`
+	}
+	if err := a.gql(ctx, byIDsQuery, map[string]any{"ids": ids, "perPage": len(ids)}, &data); err != nil {
+		return nil, err
+	}
+	byID := map[int]AniListMedia{}
+	for _, m := range data.Page.Media {
+		byID[m.ID] = m
+	}
+	out := make([]domain.Title, 0, len(ids))
+	for _, id := range ids {
+		if m, ok := byID[id]; ok {
+			out = append(out, MapAniListMedia(m))
+		}
+	}
+	return out, nil
 }

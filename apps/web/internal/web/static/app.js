@@ -19,3 +19,43 @@ document.addEventListener("click", (e) => {
   const a = e.target instanceof Element ? e.target.closest("a[href^='/icerik/']") : null;
   if (a && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) document.documentElement.classList.add("is-busy");
 });
+
+// Search as you type: from the 2nd letter, 300 ms after the last keystroke, fetch
+// only the results area (X-Partial) and keep ?q= in the address bar. The previous
+// request is cancelled. Without JS the form's "Ara" button does the same.
+(() => {
+  const form = document.querySelector("form[data-live-search]");
+  const out = document.getElementById("sonuclar");
+  if (!form || !out || !window.fetch || !window.AbortController) return;
+  const input = form.querySelector("input[name=q]");
+  let timer = 0;
+  let ctrl = null;
+  let last = input.value.trim();
+
+  const run = async () => {
+    const q = input.value.trim();
+    if (q === last || (q.length > 0 && q.length < 2)) return;
+    last = q;
+    if (ctrl) ctrl.abort();
+    const mine = (ctrl = new AbortController());
+    const url = q ? "/?q=" + encodeURIComponent(q) : "/";
+    history.replaceState(null, "", url);
+    out.setAttribute("aria-busy", "true");
+    try {
+      const res = await fetch(url, { headers: { "X-Partial": "1" }, signal: mine.signal, credentials: "same-origin" });
+      if (res.redirected) { location.href = res.url; return; } // e.g. session expired
+      const html = await res.text();
+      if (!mine.signal.aborted) out.innerHTML = html;
+    } catch (e) {
+      if (e.name !== "AbortError") location.href = url; // fall back to a normal page load
+    } finally {
+      if (ctrl === mine) out.removeAttribute("aria-busy");
+    }
+  };
+
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(run, 300);
+  });
+  form.addEventListener("submit", () => clearTimeout(timer));
+})();

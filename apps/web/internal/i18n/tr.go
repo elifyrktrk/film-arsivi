@@ -66,6 +66,7 @@ type WebStrings struct {
 	LoginTitle, LoginLead, LoginButton, LoginNote, LoginUnavailable, LoginExpired, LoginUnverified,
 	LoginFailed, InviteTitle, InviteBody, InviteRetry, Logout, SignedInAs, CSRFTitle, CSRFBody,
 	AuthOff, AuthOn string
+	RateLimitedTitle, RateLimited, KitsuAttribution string
 	// Colors names the category color keys for labels and screen readers.
 	Colors map[string]string
 }
@@ -209,6 +210,9 @@ var TR = func() Strings {
 		SignedInAs:        "Giriş yapan",
 		CSRFTitle:         "Form süresi doldu",
 		CSRFBody:          "Güvenlik için bu formu yeniden göndermen gerekiyor. Sayfayı yenileyip tekrar dene.",
+		RateLimitedTitle:  "Biraz yavaşlayalım",
+		RateLimited:       "AniList kısa bir mola istedi, çok sık arama yapıldı. Birkaç saniye sonra tekrar dene.",
+		KitsuAttribution:  "Yarım yazılan anime adları Kitsu üzerinden AniList'teki karşılıklarıyla eşleştirilir.",
 		AuthOff:           "Giriş kapalı: uygulama tek kullanıcılı modda çalışıyor. Google ile giriş için GOOGLE_CLIENT_ID ve GOOGLE_CLIENT_SECRET ekle.",
 		AuthOn:            "Google ile giriş açık. Her kullanıcı sadece kendi puanlarını ve kategorilerini görür.",
 		Colors: map[string]string{

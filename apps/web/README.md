@@ -140,6 +140,14 @@ Expo uygulaması bırakıldığı için `packages/core` (TS) artık bir referans
 - **iOS ana ekran (PWA) ve OAuth: cihazda test edilmedi.** Ana ekrandan açılan uygulamada Google'a gidiş uygulama içi bir tarayıcı sayfasında açılır. iOS sürümüne göre bu sayfanın çerezleri ana ekran uygulamasıyla paylaşılmayabilir; o durumda giriş tamamlanır ama oturum çerezi uygulamaya geçmez ve kullanıcı yeniden giriş sayfasını görür. Önlem olarak state çerezi kaybolursa giriş güvenli biçimde reddedilir ("Giriş yarıda kaldı"), yanlış hesaba oturum açılmaz. Yayından sonra gerçek iPhone'da denenmeli; sorun çıkarsa çözüm, girişi Safari'de yapıp sonra ana ekrana eklemek ya da kısa ömürlü bir tek kullanımlık kodla oturumu uygulamaya aktarmak olur.
 - Sahte bir OIDC sağlayıcıyla test edildi; gerçek Google istemcisiyle henüz denenmedi (anahtar yok).
 
+## Arama: yarım yazılan adlar, yazarken arama, önbellek
+
+- **Yarım kelimeler (Kitsu yedeği).** AniList'in araması kelime bazlıdır: `frie` hiçbir şey bulmaz, `frieren` bulur. Bu yüzden her anime aramasında AniList ile paralel olarak [Kitsu](https://kitsu.app/)'ya da sorulur (`filter[text]`, `include=mappings`, anahtarsız). AniList 5'ten az sonuç döndürürse Kitsu'nun bulduklarının AniList kimlikleri (`externalSite == "anilist/anime"`) alınır, eksik olanlar **tek bir** AniList `id_in` sorgusuyla çekilir ve AniList sonuçlarının arkasına eklenir. Kaynak etiketi AniList kalır; AniList eşlemesi olmayan Kitsu sonuçları atlanır. Arama başına en fazla 2 ek istek. Kitsu yanıt vermezse arama AniList sonuçlarıyla devam eder.
+  - Doğrulandı: `fri`, `frie` → Frieren; `shinge` → Attack on Titan (Shingeki no Kyojin); `jujut` → Jujutsu Kaisen; `chainsa` → Chainsaw Man.
+- **Yazarken arama.** Arama kutusunda 2. harften itibaren, son tuştan 300 ms sonra sadece sonuç alanı (`X-Partial: 1` ile sunucuda üretilen HTML parçası) yenilenir; önceki istek iptal edilir, adres çubuğundaki `?q=` güncellenir. JavaScript kapalıyken "Ara" butonu aynı sayfayı tam olarak yükler. htmx yerine 30 satırlık `static/app.js` yeterli oldu.
+- **Önbellek.** Aynı arama (büyük-küçük harf ve boşluk fark etmeden) 10 dakika bellekte tutulur; hem anime (AniList + Kitsu) hem TMDB için. Hatalar önbelleğe alınmaz. AniList dakikada ~90 istek sınırı koyar; 429 gelirse arayüz "Biraz yavaşlayalım" diye sakin bir not gösterir (TMDB sonuçları varsa onlar yine listelenir).
+- Hakkında sayfasında Kitsu atfı var.
+
 ## Topluluk puanları (IMDb ve AniList)
 
 Kullanıcının kendi puanı her zaman önde ve büyük; topluluk puanı yanında, küçük ve ikincil durur. Puan yoksa hiçbir şey gösterilmez.

@@ -392,3 +392,19 @@ func TestStoreKeepsCategoriesPerUser(t *testing.T) {
 		must(svc.Create(ctx, "bob", domain.CategoryInput{Name: "liste", Color: "red"}))
 	})
 }
+
+type limitedErr struct{}
+
+func (limitedErr) Error() string     { return "429" }
+func (limitedErr) RateLimited() bool { return true }
+
+func TestSearchReportsRateLimit(t *testing.T) {
+	_, err := (&domain.SearchService{AniList: fakeSource{err: limitedErr{}}}).Search(ctx, "frieren")
+	if !errors.Is(err, domain.ErrSearchFailed) {
+		t.Fatal(err)
+	}
+	r, _ := (&domain.SearchService{AniList: fakeSource{err: limitedErr{}}}).Search(ctx, "frieren")
+	if r.Sources.AniList != domain.SourceLimited {
+		t.Fatalf("%+v", r.Sources)
+	}
+}

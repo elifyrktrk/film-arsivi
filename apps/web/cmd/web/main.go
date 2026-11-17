@@ -61,9 +61,10 @@ func run(log *slog.Logger) error {
 	defer st.Close()
 
 	client := &http.Client{Timeout: 8 * time.Second}
-	search := &domain.SearchService{AniList: sources.NewAniList(client)}
+	anilist := sources.NewAniList(client)
+	search := &domain.SearchService{AniList: sources.NewCached(&sources.Anime{AniList: anilist, Kitsu: sources.NewKitsu(client)}, 10*time.Minute)}
 	if key := strings.TrimSpace(os.Getenv("TMDB_API_KEY")); key != "" {
-		search.TMDB = sources.NewTMDB(client, key)
+		search.TMDB = sources.NewCached(sources.NewTMDB(client, key), 10*time.Minute)
 		// IMDb ratings are matched through TMDB's imdb_id, so they are only useful
 		// (and only downloaded) when TMDB is on.
 		if os.Getenv("IMDB_SYNC") != "off" {

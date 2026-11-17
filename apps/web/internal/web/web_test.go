@@ -362,3 +362,24 @@ func TestCommunityScoresOnPages(t *testing.T) {
 		t.Fatal("IMDb score without lookup")
 	}
 }
+
+type limited struct{}
+
+func (limited) Error() string     { return "429" }
+func (limited) RateLimited() bool { return true }
+
+func TestLiveSearchFragmentAndRateLimit(t *testing.T) {
+	h := newHarness(t)
+	req := httptest.NewRequest("GET", "/?q=frieren", nil)
+	req.Header.Set("X-Partial", "1")
+	rec := httptest.NewRecorder()
+	h.h.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if rec.Code != 200 || strings.Contains(body, "<html") || strings.Contains(body, "searchbar") || !strings.Contains(body, "/icerik/anilist:154587") {
+		t.Fatalf("fragment: %d %s", rec.Code, body)
+	}
+	h.get("/?q=frieren", 200, `id="sonuclar"`, "data-live-search")
+
+	h.anilist.err = limited{}
+	h.get("/?q=frieren", http.StatusBadGateway, "Biraz yavaşlayalım", "AniList kısa bir mola istedi")
+}

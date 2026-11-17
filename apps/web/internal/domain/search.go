@@ -18,7 +18,19 @@ const (
 	SourceOK       SourceState = "ok"
 	SourceDisabled SourceState = "disabled"
 	SourceError    SourceState = "error"
+	// SourceLimited: the source answered 429 (too many requests).
+	SourceLimited SourceState = "limited"
 )
+
+// stateOf maps a source error to its state. Errors with RateLimited() true
+// (sources.StatusError on 429) become SourceLimited.
+func stateOf(err error) SourceState {
+	var rl interface{ RateLimited() bool }
+	if errors.As(err, &rl) && rl.RateLimited() {
+		return SourceLimited
+	}
+	return SourceError
+}
 
 type SourceStates struct {
 	TMDB    SourceState `json:"tmdb"`
@@ -150,15 +162,15 @@ func (s *SearchService) Search(ctx context.Context, query string) (SearchResult,
 	if s.TMDB != nil {
 		states.TMDB = SourceOK
 		if tErr != nil {
-			states.TMDB = SourceError
+			states.TMDB = stateOf(tErr)
 			tRes = nil
 		}
 	}
 	if aErr != nil {
-		states.AniList = SourceError
+		states.AniList = stateOf(aErr)
 		aRes = nil
 	}
-	if states.AniList == SourceError && states.TMDB != SourceOK {
+	if states.AniList != SourceOK && states.TMDB != SourceOK {
 		return SearchResult{Sources: states}, ErrSearchFailed
 	}
 	return SearchResult{Results: MergeSearchResults(q, tRes, aRes), Sources: states}, nil
